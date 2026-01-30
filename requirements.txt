@@ -1,0 +1,12 @@
+pandas
+numpy
+xgboost
+scikit-learn
+shap
+plotly
+streamlit
+python-dotenv
+langchain
+langchain-groq
+langchain-experimental
+langchain-community
