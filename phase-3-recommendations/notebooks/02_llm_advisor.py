@@ -20,7 +20,7 @@ def generate_recommendations():
         # Take top 3 for demo to save time/tokens
         top_events = df.head(3)
         
-        llm = ChatGroq(temperature=0.3, groq_api_key=GROQ_API_KEY, model_name="llama-3.3-70b-versatile")
+        llm = ChatGroq(temperature=0.3, groq_api_key=GROQ_API_KEY, model_name="llama-3.1-8b-instant")
         
         template = """
         ACT: You are a Senior Energy Efficiency Engineer at UPTC University.
