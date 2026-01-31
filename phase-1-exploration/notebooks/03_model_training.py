@@ -15,18 +15,23 @@ def train_model():
     df = pd.read_csv(os.path.join(DATA_DIR, "consumos_uptc_clean.csv"))
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     
+    # Feature Engineering (Encoding Categoricals)
+    df['sede_id_encoded'] = df['sede'].astype('category').cat.codes
+    df['periodo_academico_encoded'] = df['periodo_academico'].astype('category').cat.codes
+
     # Target and Features
     TARGET = 'energia_total_kwh'
     FEATURES = ['hour_sin', 'hour_cos', 'day_sin', 'day_cos', 'month_sin', 'month_cos', 
-                'temperatura_exterior_c', 'ocupacion_pct']
-    # If we had lags, we'd add 'lag_24h' here. Let's compute it on the fly for simplicity.
+                'temperatura_exterior_c', 'ocupacion_pct',
+                'es_festivo', 'es_semana_parciales', 'es_semana_finales',
+                'sede_id_encoded', 'periodo_academico_encoded']
     
     # Sorting
     df = df.sort_values(['sede', 'timestamp'])
     
     # Train/Test Split (Time-based)
-    # Train: < 2024, Test: >= 2024
-    split_date = '2024-01-01'
+    # Train: < 2025, Test: >= 2025
+    split_date = '2025-01-01'
     train = df[df['timestamp'] < split_date].copy()
     test = df[df['timestamp'] >= split_date].copy()
     
@@ -52,11 +57,11 @@ def train_model():
             continue
             
         model = xgb.XGBRegressor(
-            n_estimators=500,
-            learning_rate=0.05,
-            max_depth=6,
-            early_stopping_rounds=50,
-            n_jobs=-1
+            n_estimators=700,
+            learning_rate=0.02,
+            max_depth=5,
+            early_stopping_rounds=100,
+            n_jobs=-3
         )
         
         # Fit
@@ -74,8 +79,33 @@ def train_model():
         rmse = np.sqrt(mean_squared_error(test_s[TARGET], preds))
         mae = mean_absolute_error(test_s[TARGET], preds)
         
+        # Calculate R2
+        from sklearn.metrics import r2_score
+        r2 = r2_score(test_s[TARGET], preds)
+        
+        # Calculate MAPE (Mean Absolute Percentage Error)
+        # Handle division by zero if target is 0
+        y_true = test_s[TARGET]
+        mask = y_true > 0
+        if mask.any():
+            mape = np.mean(np.abs((y_true[mask] - preds[mask]) / y_true[mask])) * 100
+        else:
+            mape = 0
+            
+        accuracy_pct = 100 - mape
+        
         print(f"  RMSE: {rmse:.2f} | MAE: {mae:.2f}")
-        metrics.append({'sede': sede, 'rmse': rmse, 'mae': mae})
+        print(f"  R2 Score: {r2:.2f}")
+        print(f"  MAPE: {mape:.2f}%")
+        print(f"  >> PRECISION (Accuracy): {accuracy_pct:.2f}%")
+        
+        metrics.append({
+            'sede': sede, 
+            'rmse': rmse, 
+            'mae': mae, 
+            'r2': r2, 
+            'accuracy_pct': accuracy_pct
+        })
         
         processed_dfs.append(test_s)
         
@@ -90,10 +120,10 @@ def train_model():
         metrics_df.to_csv(os.path.join(PLOTS_DIR, "metrics.csv"), index=False)
         
         # Plot Prediction vs Actual (First week of Test set for clarity)
-        plot_df = all_res[(all_res['timestamp'] >= '2024-01-01') & (all_res['timestamp'] < '2024-01-15')]
+        plot_df = all_res[(all_res['timestamp'] >= '2025-01-01') & (all_res['timestamp'] < '2025-01-15')]
         
         fig = px.line(plot_df, x='timestamp', y=[TARGET, 'prediction'], color='sede',
-                      title='Actual vs Predicted Energy (Jan 2024)')
+                      title='Actual vs Predicted Energy (Jan 2025)')
         fig.write_html(os.path.join(PLOTS_DIR, "prediction_comparison.html"))
         print("Saved prediction_comparison.html")
 
