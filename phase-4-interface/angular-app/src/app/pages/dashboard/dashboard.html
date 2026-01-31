@@ -53,171 +53,198 @@
 
   <!-- Main Content -->
   <main class="flex-1 flex overflow-hidden min-h-0">
-    <!-- Left Sidebar - Chat History & Chat Interface -->
-    <aside class="w-80 bg-gray-800 border-r border-gray-700 flex flex-col">
-      <!-- Chat History Section -->
-      <div class="flex-1 overflow-y-auto border-b border-gray-700">
-        <div class="p-3 border-b border-gray-700">
-          <h2 class="text-sm font-semibold text-gray-200 flex items-center">
-            💬 Historial
-          </h2>
-        </div>
-
-        <div class="p-3">
-          <button (click)="createNewChat()"
-            class="w-full px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <!-- Left Sidebar - Full Chat Interface -->
+    <aside class="w-96 bg-gray-800 border-r border-gray-700 flex flex-col">
+      <!-- Chat Header with History Toggle -->
+      <div class="p-3 border-b border-gray-700 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-gray-200 flex items-center">
+          💬 Chat
+        </h2>
+        <div class="flex items-center gap-2">
+          <!-- History Chip - Only show if there are chats -->
+          @if (chatHistories().length > 0) {
+            <button
+              (click)="toggleHistoryPanel()"
+              class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-full text-xs text-gray-300 flex items-center gap-1 transition-colors">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {{ chatHistories().length }}
+            </button>
+          }
+          
+          <!-- New Chat Button -->
+          <button
+            (click)="saveAndCreateNewChat()"
+            class="p-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors"
+            title="Guardar y nuevo chat">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
-            Nuevo Chat
           </button>
-
-          @if (chatHistories().length === 0) {
-          <div class="text-center py-6 px-2">
-            <div class="text-gray-600 mb-2">
-              <svg class="w-10 h-10 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-            </div>
-            <p class="text-xs text-gray-500">No hay chats</p>
-          </div>
-          } @else {
-          <div class="mt-3 space-y-1">
-            <!-- Today -->
-            @if (getChatsByTimeframe('today').length > 0) {
-            <div class="mb-3">
-              <p class="text-xs font-semibold text-gray-500 uppercase mb-1 px-2">Hoy</p>
-              <div class="space-y-1">
-                @for (chat of getChatsByTimeframe('today'); track chat.id) {
-                <button (click)="selectChat(chat.id)" [class.bg-gray-700]="currentChatId() === chat.id"
-                  [class.border-l-2]="currentChatId() === chat.id" [class.border-blue-500]="currentChatId() === chat.id"
-                  class="w-full text-left px-3 py-2 rounded hover:bg-gray-700 transition-colors">
-                  <p class="text-sm text-gray-200 truncate">{{ chat.title }}</p>
-                  <p class="text-xs text-gray-500">{{ formatRelativeTime(chat.timestamp) }}</p>
-                </button>
-                }
-              </div>
-            </div>
-            }
-
-            <!-- Yesterday -->
-            @if (getChatsByTimeframe('yesterday').length > 0) {
-            <div class="mb-3">
-              <p class="text-xs font-semibold text-gray-500 uppercase mb-1 px-2">Ayer</p>
-              <div class="space-y-1">
-                @for (chat of getChatsByTimeframe('yesterday'); track chat.id) {
-                <button (click)="selectChat(chat.id)" [class.bg-gray-700]="currentChatId() === chat.id"
-                  [class.border-l-2]="currentChatId() === chat.id" [class.border-blue-500]="currentChatId() === chat.id"
-                  class="w-full text-left px-3 py-2 rounded hover:bg-gray-700 transition-colors">
-                  <p class="text-sm text-gray-200 truncate">{{ chat.title }}</p>
-                  <p class="text-xs text-gray-500">{{ formatRelativeTime(chat.timestamp) }}</p>
-                </button>
-                }
-              </div>
-            </div>
-            }
-
-            <!-- Last 7 days -->
-            @if (getChatsByTimeframe('week').length > 0) {
-            <div class="mb-3">
-              <p class="text-xs font-semibold text-gray-500 uppercase mb-1 px-2">Últimos 7 días</p>
-              <div class="space-y-1">
-                @for (chat of getChatsByTimeframe('week'); track chat.id) {
-                <button (click)="selectChat(chat.id)" [class.bg-gray-700]="currentChatId() === chat.id"
-                  [class.border-l-2]="currentChatId() === chat.id" [class.border-blue-500]="currentChatId() === chat.id"
-                  class="w-full text-left px-3 py-2 rounded hover:bg-gray-700 transition-colors">
-                  <p class="text-sm text-gray-200 truncate">{{ chat.title }}</p>
-                  <p class="text-xs text-gray-500">{{ formatRelativeTime(chat.timestamp) }}</p>
-                </button>
-                }
-              </div>
-            </div>
-            }
-          </div>
-          }
         </div>
       </div>
 
-      <!-- Chat Messages Mini View -->
-      <div class="h-64 flex flex-col bg-gray-850">
-        <div class="p-2 border-b border-gray-700">
-          <h3 class="text-xs font-semibold text-gray-400 uppercase">Chat Actual</h3>
-        </div>
-<<<<<<< Updated upstream
+      <!-- History Panel - Collapsible -->
+      @if (showHistoryPanel()) {
+        <div class="border-b border-gray-700 bg-gray-750 max-h-64 overflow-y-auto">
+          <div class="p-3">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-gray-400 uppercase">Historial</span>
+              <button
+                (click)="toggleHistoryPanel()"
+                class="p-1 rounded hover:bg-gray-700 text-gray-400 hover:text-white">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
-        <div class="flex-1 overflow-y-auto p-2 space-y-2">
-=======
-        
-        <div class="flex-1 overflow-y-auto p-2 space-y-2" #chatContainer>
->>>>>>> Stashed changes
-          @if (currentMessages().length === 0) {
-          <div class="text-center py-4">
-            <p class="text-xs text-gray-500">Inicia una conversación</p>
-          </div>
-          } @else {
-<<<<<<< Updated upstream
-          @for (message of currentMessages(); track message.id) {
-          @if (message.sender === 'assistant') {
-          <div class="flex items-start gap-2">
-            <div class="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-              <span class="text-white text-xs">👻</span>
-            </div>
-            <div class="bg-gray-700 rounded-lg p-2 text-xs text-gray-200 max-w-[85%]">
-              <p class="line-clamp-3">{{ message.text }}</p>
-            </div>
-          </div>
-          } @else {
-          <div class="flex items-start gap-2 justify-end">
-            <div class="bg-blue-600 rounded-lg p-2 text-xs text-white max-w-[85%]">
-              <p class="line-clamp-3">{{ message.text }}</p>
-            </div>
-            <div class="w-5 h-5 bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
-              <span class="text-gray-200 text-xs font-semibold">U</span>
-            </div>
-          </div>
-          }
-          }
-=======
-            @for (message of currentMessages(); track message.id) {
-              @if (message.sender === 'assistant') {
-                <div class="flex items-start gap-2">
-                  <div class="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span class="text-white text-xs">👻</span>
-                  </div>
-                  <div class="bg-gray-700 rounded-lg p-2 text-xs text-gray-200 max-w-[85%]">
-                    <p class="whitespace-pre-wrap">{{ message.text }}</p>
-                  </div>
-                </div>
-              } @else {
-                <div class="flex items-start gap-2 justify-end">
-                  <div class="bg-blue-600 rounded-lg p-2 text-xs text-white max-w-[85%]">
-                    <p class="whitespace-pre-wrap">{{ message.text }}</p>
-                  </div>
-                  <div class="w-5 h-5 bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span class="text-gray-200 text-xs font-semibold">U</span>
+            <div class="space-y-1">
+              <!-- Today -->
+              @if (getChatsByTimeframe('today').length > 0) {
+                <div class="mb-2">
+                  <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Hoy</p>
+                  <div class="space-y-1">
+                    @for (chat of getChatsByTimeframe('today'); track chat.id) {
+                      <button
+                        (click)="selectChat(chat.id)"
+                        [class.bg-gray-700]="currentChatId() === chat.id"
+                        [class.border-l-2]="currentChatId() === chat.id"
+                        [class.border-blue-500]="currentChatId() === chat.id"
+                        class="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-gray-700 transition-colors">
+                        <p class="text-gray-200 truncate">{{ chat.title }}</p>
+                        <p class="text-gray-500 text-[10px]">{{ formatRelativeTime(chat.timestamp) }}</p>
+                      </button>
+                    }
                   </div>
                 </div>
               }
-            }
->>>>>>> Stashed changes
-          }
-        </div>
 
-        <!-- Quick Chat Input -->
-        <div class="p-2 border-t border-gray-700">
-          <div class="flex items-center gap-2">
-            <input [(ngModel)]="chatInput" (keydown)="handleKeyDown($event)" type="text" placeholder="Escribe aquí..."
-              class="flex-1 px-3 py-2 text-xs bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
-              [disabled]="isSending()" />
-            <button (click)="sendMessage()" [disabled]="!chatInput().trim() || isSending()"
-              class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </button>
+              <!-- Yesterday -->
+              @if (getChatsByTimeframe('yesterday').length > 0) {
+                <div class="mb-2">
+                  <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Ayer</p>
+                  <div class="space-y-1">
+                    @for (chat of getChatsByTimeframe('yesterday'); track chat.id) {
+                      <button
+                        (click)="selectChat(chat.id)"
+                        [class.bg-gray-700]="currentChatId() === chat.id"
+                        [class.border-l-2]="currentChatId() === chat.id"
+                        [class.border-blue-500]="currentChatId() === chat.id"
+                        class="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-gray-700 transition-colors">
+                        <p class="text-gray-200 truncate">{{ chat.title }}</p>
+                        <p class="text-gray-500 text-[10px]">{{ formatRelativeTime(chat.timestamp) }}</p>
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- Last 7 days -->
+              @if (getChatsByTimeframe('week').length > 0) {
+                <div class="mb-2">
+                  <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Últimos 7 días</p>
+                  <div class="space-y-1">
+                    @for (chat of getChatsByTimeframe('week'); track chat.id) {
+                      <button
+                        (click)="selectChat(chat.id)"
+                        [class.bg-gray-700]="currentChatId() === chat.id"
+                        [class.border-l-2]="currentChatId() === chat.id"
+                        [class.border-blue-500]="currentChatId() === chat.id"
+                        class="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-gray-700 transition-colors">
+                        <p class="text-gray-200 truncate">{{ chat.title }}</p>
+                        <p class="text-gray-500 text-[10px]">{{ formatRelativeTime(chat.timestamp) }}</p>
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
           </div>
+        </div>
+      }
+
+      <!-- Chat Messages Area -->
+      <div class="flex-1 overflow-y-auto p-3 space-y-3" #chatContainer>
+        @if (currentMessages().length === 0) {
+          <div class="text-center py-12">
+            <div class="text-gray-600 mb-3">
+              <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <p class="text-sm text-gray-400">Inicia una conversación</p>
+          </div>
+        } @else {
+          @for (message of currentMessages(); track message.id) {
+            @if (message.sender === 'assistant') {
+              <!-- AI Message -->
+              <div class="flex items-start gap-2">
+                <div class="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span class="text-white text-sm">👻</span>
+                </div>
+                <div class="flex-1">
+                  <div class="bg-gray-700 rounded-lg rounded-tl-sm p-3">
+                    <p class="text-sm text-gray-100 whitespace-pre-wrap">{{ message.text }}</p>
+                  </div>
+                  <p class="text-[10px] text-gray-500 mt-1 ml-1">{{ message.timestamp | date:'short' }}</p>
+                </div>
+              </div>
+            } @else {
+              <!-- User Message -->
+              <div class="flex items-start gap-2 justify-end">
+                <div class="flex-1 flex justify-end">
+                  <div class="max-w-[85%]">
+                    <div class="bg-blue-600 rounded-lg rounded-tr-sm p-3">
+                      <p class="text-sm text-white whitespace-pre-wrap">{{ message.text }}</p>
+                    </div>
+                    <p class="text-[10px] text-gray-500 mt-1 mr-1 text-right">{{ message.timestamp | date:'short' }}</p>
+                  </div>
+                </div>
+                <div class="w-7 h-7 bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span class="text-gray-200 text-xs font-semibold">U</span>
+                </div>
+              </div>
+            }
+          }
+
+          @if (isSending()) {
+            <div class="flex items-start gap-2">
+              <div class="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <span class="text-white text-sm">👻</span>
+              </div>
+              <div class="bg-gray-700 rounded-lg rounded-tl-sm p-3">
+                <div class="flex space-x-2">
+                  <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                  <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                  <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                </div>
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Chat Input -->
+      <div class="p-3 border-t border-gray-700">
+        <div class="flex items-center gap-2">
+          <input
+            [(ngModel)]="chatInput"
+            (keydown)="handleKeyDown($event)"
+            type="text"
+            placeholder="Escribe aquí..."
+            class="flex-1 px-3 py-2 text-sm bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            [disabled]="isSending()"
+          />
+          <button
+            (click)="sendMessage()"
+            [disabled]="!chatInput().trim() || isSending()"
+            class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </button>
         </div>
       </div>
     </aside>

@@ -1,4 +1,4 @@
-import { Component, signal, computed, effect, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DataService } from '../../core/data';
@@ -27,14 +27,11 @@ interface ChatHistory {
 
 @Component({
   selector: 'app-dashboard',
-  standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './dashboard.html',
-  styleUrl: './dashboard.css'
+  styleUrl: './dashboard.css',
 })
-export class Dashboard implements AfterViewInit {
-  @ViewChild('chatContainer') chatContainer!: ElementRef;
-
+export class Dashboard implements OnInit {
   // Signals for reactive state management
   readonly sedes = signal<string[]>([]);
   readonly selectedSede = signal<string>('');
@@ -52,30 +49,13 @@ export class Dashboard implements AfterViewInit {
   readonly currentMessages = signal<ChatMessage[]>([]);
   readonly chatInput = signal<string>('');
   readonly isSending = signal<boolean>(false);
+  
+  // UI state signals
+  readonly showHistory = signal<boolean>(false);
+  readonly showDashboard = signal<boolean>(false);
+  readonly showHistoryPanel = signal<boolean>(false);
 
-  constructor(private dataService: DataService) {
-    // Initialize chat histories
-    this.chatHistories.set([]);
-    
-    // Auto-scroll effect for new messages
-    effect(() => {
-      const messages = this.currentMessages();
-      if (messages.length > 0) {
-        setTimeout(() => this.scrollToBottom(), 100);
-      }
-    });
-  }
-
-  ngAfterViewInit(): void {
-    // Called after the view is initialized
-  }
-
-  private scrollToBottom(): void {
-    if (this.chatContainer && this.chatContainer.nativeElement) {
-      const container = this.chatContainer.nativeElement;
-      container.scrollTop = container.scrollHeight;
-    }
-  }
+  constructor(private dataService: DataService) {}
 
   ngOnInit(): void {
     this.loadInitialData();
@@ -172,57 +152,42 @@ export class Dashboard implements AfterViewInit {
     this.currentMessages.set([...this.currentMessages(), userMessage]);
     this.chatInput.set('');
 
-    // Call real API
-    this.dataService.chat({ sede: this.selectedSede(), pregunta: message }).subscribe({
-      next: (response) => {
-        const aiMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          text: response.respuesta || 'No se pudo obtener una respuesta.',
-          sender: 'assistant',
-          timestamp: new Date()
-        };
-        
-        this.currentMessages.set([...this.currentMessages(), aiMessage]);
-        this.isSending.set(false);
+    // TODO: Replace this with actual API call to your AI backend
+    // Example: this.dataService.sendChatMessage(this.selectedSede(), message).subscribe(...)
+    
+    setTimeout(() => {
+      const aiMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        text: `Pregunta recibida: "${message}". Para la sede ${this.selectedSede()}, tengo acceso a los siguientes datos:\n\n` +
+              `• Consumo total: ${this.formatNumber(this.kpis()?.total_kwh || 0)} kWh\n` +
+              `• Anomalías críticas: ${this.kpis()?.critical_anomalies || 0}\n` +
+              `• Eficiencia: ${this.kpis()?.eficiencia || 0}%\n\n` +
+              `(Implementa la integración con tu servicio de IA aquí)`,
+        sender: 'assistant',
+        timestamp: new Date()
+      };
+      
+      this.currentMessages.set([...this.currentMessages(), aiMessage]);
+      this.isSending.set(false);
 
-        // Update chat history
-        this.updateChatHistory();
-      },
-      error: (error) => {
-        console.error('Chat API Error:', error);
-        const errorMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          text: `Error: ${error.error?.message || 'No se pudo conectar con el asistente IA. Por favor, intenta nuevamente.'}`,
-          sender: 'assistant',
-          timestamp: new Date()
-        };
-        
-        this.currentMessages.set([...this.currentMessages(), errorMessage]);
-        this.isSending.set(false);
-
-        // Update chat history
-        this.updateChatHistory();
-      }
-    });
-  }
-
-  private updateChatHistory(): void {
-    if (this.currentChatId()) {
-      const histories = this.chatHistories();
-      const index = histories.findIndex(c => c.id === this.currentChatId());
-      if (index !== -1) {
-        histories[index].messages = this.currentMessages();
-        // Update title based on first user message
-        if (histories[index].title === 'Nuevo chat' && this.currentMessages().length > 0) {
-          const firstUserMessage = this.currentMessages().find(m => m.sender === 'user');
-          if (firstUserMessage) {
-            histories[index].title = firstUserMessage.text.substring(0, 30) + 
-                                    (firstUserMessage.text.length > 30 ? '...' : '');
+      // Update chat history
+      if (this.currentChatId()) {
+        const histories = this.chatHistories();
+        const index = histories.findIndex(c => c.id === this.currentChatId());
+        if (index !== -1) {
+          histories[index].messages = this.currentMessages();
+          // Update title based on first user message
+          if (histories[index].title === 'Nuevo chat' && this.currentMessages().length > 0) {
+            const firstUserMessage = this.currentMessages().find(m => m.sender === 'user');
+            if (firstUserMessage) {
+              histories[index].title = firstUserMessage.text.substring(0, 30) + 
+                                      (firstUserMessage.text.length > 30 ? '...' : '');
+            }
           }
+          this.chatHistories.set([...histories]);
         }
-        this.chatHistories.set([...histories]);
       }
-    }
+    }, 1000);
   }
 
   handleKeyDown(event: KeyboardEvent): void {
@@ -230,6 +195,34 @@ export class Dashboard implements AfterViewInit {
       event.preventDefault();
       this.sendMessage();
     }
+  }
+
+  toggleHistory(): void {
+    this.showHistory.set(!this.showHistory());
+  }
+
+  toggleDashboard(): void {
+    this.showDashboard.set(!this.showDashboard());
+  }
+
+  toggleHistoryPanel(): void {
+    this.showHistoryPanel.set(!this.showHistoryPanel());
+  }
+
+  saveAndCreateNewChat(): void {
+    // If there are messages in current chat, save it to history
+    if (this.currentMessages().length > 0 && this.currentChatId()) {
+      const histories = this.chatHistories();
+      const index = histories.findIndex(c => c.id === this.currentChatId());
+      if (index !== -1) {
+        // Already in history, just update
+        histories[index].messages = this.currentMessages();
+        this.chatHistories.set([...histories]);
+      }
+    }
+    
+    // Create new chat
+    this.createNewChat();
   }
 
   // Remove the generateAIResponse method - it's not needed
