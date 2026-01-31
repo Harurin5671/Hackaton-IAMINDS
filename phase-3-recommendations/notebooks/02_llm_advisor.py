@@ -29,8 +29,24 @@ def generate_recommendations():
         # We process the top 5 events for the demo
         top_indices = df.head(5).index
         
-        # Using Llama-3-70b for maximum reasoning capability
-        llm = ChatGroq(temperature=0.4, groq_api_key=GROQ_API_KEY, model_name="llama-3.3-70b-versatile")
+        # 1. Try OpenAI (Paid & Stable)
+        openai_key = os.getenv("OPENAI_API_KEY")
+        if openai_key:
+            try:
+                from langchain_openai import ChatOpenAI
+                llm = ChatOpenAI(temperature=0.3, model_name="gpt-4o-mini", openai_api_key=openai_key)
+                print("Using OpenAI (gpt-4o-mini)")
+            except:
+                print("OpenAI key found but library missing. Installing fallback...")
+                llm = None
+        else:
+            llm = None
+
+        # 2. Fallback to Groq
+        if not llm:
+            api_key = os.getenv("GROQ_API_KEY")
+            llm = ChatGroq(temperature=0.4, groq_api_key=api_key, model_name="llama-3.3-70b-versatile")
+            print("Using Groq (llama-3.3-70b)")
         
         # PROMPT ENGINEERING V2: Role-Playing + Business Impact
         template = """

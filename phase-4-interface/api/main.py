@@ -7,7 +7,11 @@ import logging
 from dotenv import load_dotenv
 
 # Config
-load_dotenv()
+# Config
+# Explicitly load .env from project root to ensure keys are found
+env_path = os.path.join(os.path.dirname(__file__), '../../.env')
+load_dotenv(dotenv_path=env_path)
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -63,10 +67,6 @@ def get_agent_response(sede: str, question: str):
     """
     Creates a Pandas Agent with optimized instructions and robust error handling.
     """
-    api_key = os.getenv("GROQ_API_KEY")
-    if not api_key:
-        return "⚠️ Error: API Key no configurada en el servidor."
-
     # Heuristic: If simple greeting, skip agent to save tokens/time
     greetings = ["hola", "buenos dias", "buenas tardes", "buenas noches", "hi", "hello"]
     if any(g in question.lower().strip() for g in greetings) and len(question) < 50:
@@ -78,39 +78,63 @@ def get_agent_response(sede: str, question: str):
     if agent_df.empty:
         return "No tengo datos cargados para esta sede."
 
-    try:
-        from langchain_groq import ChatGroq
-        from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
+    # 1. Try OpenAI (Paid & Stable)
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if openai_key:
+        try:
+            from langchain_openai import ChatOpenAI
+            llm = ChatOpenAI(
+                temperature=0,
+                model_name="gpt-4o-mini",
+                openai_api_key=openai_key
+            )
+            logger.info("Using OpenAI (gpt-4o-mini)")
+        except ImportError:
+            return "⚠️ Error: Falta librería 'langchain-openai'. Ejecuta: pip install langchain-openai"
+
+    # 2. Fallback to Groq (Free & Limited)
+    else:
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            return "⚠️ Error: No se encontraron API Keys (ni OPENAI_API_KEY ni GROQ_API_KEY)."
         
-        # Use 70b for better reasoning (avoids loops)
+        from langchain_groq import ChatGroq
         llm = ChatGroq(
             temperature=0.1, 
             groq_api_key=api_key, 
             model_name="llama-3.3-70b-versatile",
             max_retries=2
         )
+        logger.info("Using Groq (llama-3.3-70b)")
+
+    try:
+        from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
         
-        # Custom Instructions to prevent "thinking" loops and fix parsing
+        # Custom Instructions (Fixed for ReAct)
+        # Custom Instructions (Strict ReAct for GPT-4o-mini)
         prefix_prompt = """
-        You are an expert Energy Analyst Assistant. 
-        You have a pandas DataFrame 'df' with energy consumption anomalies.
+        You are an expert Energy Analyst Assistant using a pandas DataFrame 'df'.
         
-        CRITICAL RULES FOR REASONING (ReAct Pattern):
-        1. You MUST use English keywords for the reasoning steps: 'Thought:', 'Action:', 'Action Input:'.
-        2. DO NOT translate these keywords to Spanish (e.g., do NOT use 'Pensamiento:', 'Acción:').
-        3. The 'Final Answer:' MUST be in Spanish.
+        FORMAT INSTRUCTIONS:
+        You usually normally output 'Thought:', 'Action:', 'Action Input:', 'Observation:'.
         
-        Example of correct behavior:
-        Thought: I need to sum the column 'energia_total_kwh'.
+        CRITICAL: The ONLY valid value for 'Action:' is 'python_repl_ast'. Never write a sentence there.
+        
+        Example of CORRECT interaction:
+        Thought: I need to check the columns.
         Action: python_repl_ast
-        Action Input: df['energia_total_kwh'].sum()
-        Observation: 500.5
-        Thought: I have the result.
-        Final Answer: El consumo total es 500.5 kWh.
+        Action Input: df.columns
+        Observation: Index(['energy', 'date'], dtype='object')
+        Thought: I have the data.
+        Final Answer: Las columnas son energy y date.
         
-        GENERAL RULES:
-        1. If the user greets, just reply "Final Answer: ¡Hola!..." without tools.
-        2. Never invent data.
+        Example of WRONG interaction (DO NOT DO THIS):
+        Action: I will check the columns  <-- WRONG!
+        
+        RULES:
+        1. 'Action:' must ALWAYS be 'python_repl_ast'.
+        2. 'Final Answer:' must be in Spanish.
+        3. If you just want to talk (greetings), reply directly with "Final Answer: Hola...".
         """
         
         # Create Agent
@@ -133,16 +157,24 @@ def get_agent_response(sede: str, question: str):
                 return response['output']
             except Exception as e:
                 err_msg = str(e).lower()
+                
+                # OpenAI Specific
+                if "insufficient_quota" in err_msg or ("429" in err_msg and "openai" in err_msg):
+                    return "⚠️ Error OpenAI: Cuota insuficiente. Por favor revisa tu crédito en platform.openai.com"
+                
+                # Groq/Generic Rate Limit
                 if "429" in err_msg or "rate limit" in err_msg:
                     if attempt < max_retries - 1:
-                        wait_time = (attempt + 1) * 2  # 2s, 4s, 6s...
-                        logger.warning(f"Groq Rate Limit. Retrying in {wait_time}s...")
+                        wait_time = (attempt + 1) * 2
+                        logger.warning(f"Rate Limit ({'OpenAI' if openai_key else 'Groq'}). Retrying in {wait_time}s...")
                         time.sleep(wait_time)
                         continue
                     else:
-                        return "⏳ El sistema está saturado (Groq Rate Limit). Intenta de nuevo en 1 minuto."
-                else:
-                    raise e # Re-raise other errors
+                        return "⏳ El sistema está saturado. Por favor intenta de nuevo en 1 minuto."
+                
+                # Other errors
+                logger.error(f"Agent Error: {e}")
+                return f"Lo siento, tuve un problema técnico: {str(e)}"
 
     except Exception as e:
         logger.error(f"Agent Error: {e}")
