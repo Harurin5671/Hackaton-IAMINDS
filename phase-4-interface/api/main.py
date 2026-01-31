@@ -16,6 +16,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "../../phase-1-exploration/data")
 PHASE2_RES = os.path.join(BASE_DIR, "../../phase-2-anomalies/results")
 PHASE3_RES = os.path.join(BASE_DIR, "../../phase-3-recommendations/results")
+MODEL_PLOTS_DIR = os.path.join(BASE_DIR, "../../phase-1-exploration/docs/model_plots")
 
 # --- App Setup ---
 app = FastAPI(title="GhostEnergy AI API")
@@ -51,7 +52,14 @@ def load_all_data():
 
     return df_clean, df_anom, df_recs
 
-df_clean, df_anom, df_recs = load_all_data()
+    try:
+        df_metrics = pd.read_csv(os.path.join(MODEL_PLOTS_DIR, "metrics.csv"))
+    except:
+        df_metrics = pd.DataFrame()
+    
+    return df_clean, df_anom, df_recs, df_metrics
+
+df_clean, df_anom, df_recs, df_metrics = load_all_data()
 
 # --- Models ---
 class ChatRequest(BaseModel):
@@ -145,8 +153,147 @@ def get_agent_response(sede: str, question: str):
                     raise e # Re-raise other errors
 
     except Exception as e:
-        logger.error(f"Agent Error: {e}")
-        return f"Lo siento, tuve un problema técnico: {str(e)}"
+        error_msg = str(e).lower()
+        if "429" in error_msg or "rate limit" in error_msg:
+            logger.error(f"❌ Still rate limited, using offline mode")
+        else:
+            logger.error(f"❌ Groq error: {str(e)}")
+        
+        # Fallback to offline
+        agent_df = df_anom[df_anom['sede'] == request_data['sede']].tail(200)
+        return {"respuesta": offline_assistant_answer(request_data['pregunta'], request_data['sede'], agent_df, df_recs)}
+
+async def queue_worker():
+    """Background worker that processes chat requests sequentially"""
+    global is_processing
+    
+    while True:
+        try:
+            # Wait for a request
+            request_data = await chat_queue.get()
+            
+            async with processing_lock:
+                is_processing = True
+                logger.info(f"🎯 Started processing request for {request_data['sede']}")
+                
+                # Process the request
+                result = await process_groq_request(request_data)
+                
+                # Store result for the original request to retrieve
+                request_data['result'] = result
+                request_data['completed'] = True
+                
+                logger.info(f"✅ Completed request for {request_data['sede']}")
+                is_processing = False
+                
+            chat_queue.task_done()
+            
+        except Exception as e:
+            logger.error(f"❌ Queue worker error: {str(e)}")
+            is_processing = False
+            chat_queue.task_done()
+        
+        # Small delay between requests to be extra safe
+        await asyncio.sleep(1)
+
+# Start the queue worker when app starts
+@app.on_event("startup")
+async def startup_event():
+    """Start the background queue worker"""
+    asyncio.create_task(queue_worker())
+    logger.info("🚀 Chat queue worker started")
+
+# --- Offline assistant igual que en Streamlit ---
+def offline_assistant_answer(user_question: str, sede: str, anom_df, recs_df) -> str:
+    logger.info(f"🤖 OFFLINE MODE: Processing question for sede '{sede}': '{user_question}'")
+    
+    q = (user_question or "").lower().strip()
+    logger.info(f"🔍 Question keywords: {q}")
+
+    # Recomendaciones top 3
+    sede_recs = recs_df[recs_df["sede"] == sede] if not recs_df.empty else pd.DataFrame()
+    sede_recs = sede_recs.sort_values("total_kwh", ascending=False).head(3) if not sede_recs.empty else sede_recs
+    logger.info(f"📋 Found {len(sede_recs)} recommendations for {sede}")
+
+    # Últimas anomalías críticas
+    sede_anom = anom_df[anom_df["sede"] == sede] if "sede" in anom_df.columns else anom_df.copy()
+    if "anomaly_critical" in sede_anom.columns:
+        sede_anom = sede_anom[sede_anom["anomaly_critical"] == 1].copy()
+    if "timestamp" in sede_anom.columns:
+        sede_anom["timestamp"] = pd.to_datetime(sede_anom["timestamp"], errors="coerce")
+        sede_anom = sede_anom.sort_values("timestamp", ascending=False).head(5)
+    logger.info(f"🚨 Found {len(sede_anom)} critical anomalies for {sede}")
+
+    # Lógica simple de respuesta
+    if any(k in q for k in ["recomend", "acción", "hacer", "suger", "reducir"]):
+        logger.info("🎯 Using recommendation logic")
+        if sede_recs.empty:
+            response = "No hay recomendaciones disponibles para esta sede."
+            logger.info("❌ No recommendations found")
+            return response
+        response = "\n".join([f"- {r['category']} (~{r['total_kwh']:.1f} kWh)" for _, r in sede_recs.iterrows()])
+        logger.info(f"✅ Generated recommendation response: {response}")
+        return response
+
+    if any(k in q for k in ["anomal", "alert", "pico", "desperd", "waste", "crític"]):
+        logger.info("🚨 Using anomaly logic")
+        if sede_anom.empty:
+            response = "No hay anomalías críticas recientes registradas."
+            logger.info("❌ No critical anomalies found")
+            return response
+        response = "\n".join([f"- {a['timestamp']}: {a.get('energia_total_kwh','NA')} kWh" for _, a in sede_anom.iterrows()])
+        logger.info(f"✅ Generated anomaly response: {response}")
+        return response
+
+    # Default: resumen rápido
+    logger.info("📝 Using default summary logic")
+    parts = []
+    if not sede_recs.empty:
+        r = sede_recs.iloc[0]
+        parts.append(f"- Recomendación #1: {r['category']} (~{r['total_kwh']:.1f} kWh)")
+    if not sede_anom.empty:
+        a = sede_anom.iloc[0]
+        parts.append(f"- Última anomalía crítica: {a['timestamp']} ({a['energia_total_kwh']} kWh)")
+    
+    response = "\n".join(parts) or "No hay datos suficientes para responder."
+    logger.info(f"✅ Generated default response: {response}")
+    return response
+
+# --- Load Data ---
+def load_all_data():
+    df_clean = pd.read_csv(os.path.join(DATA_DIR, "consumos_uptc_clean.csv"))
+    df_clean['timestamp'] = pd.to_datetime(df_clean['timestamp'])
+
+    try:
+        df_anom = pd.read_csv(os.path.join(PHASE2_RES, "anomalies_detected.csv"))
+        df_anom['timestamp'] = pd.to_datetime(df_anom['timestamp'])
+    except:
+        df_anom = df_clean.copy()
+
+    try:
+        df_recs = pd.read_csv(os.path.join(PHASE3_RES, "prioritized_recommendations.csv"))
+    except:
+        df_recs = pd.DataFrame()
+
+    try:
+        df_metrics = pd.read_csv(os.path.join(MODEL_PLOTS_DIR, "metrics.csv"))
+    except:
+        df_metrics = pd.DataFrame()
+
+    try:
+        df_forecast = pd.read_csv(os.path.join(MODEL_PLOTS_DIR, "forecast_2026_full.csv"))
+        df_forecast['timestamp'] = pd.to_datetime(df_forecast['timestamp'])
+    except:
+        df_forecast = pd.DataFrame()
+
+    return df_clean, df_anom, df_recs, df_metrics, df_forecast
+
+df_clean, df_anom, df_recs, df_metrics, df_forecast = load_all_data()
+
+# --- Modelos Pydantic ---
+class ChatRequest(BaseModel):
+    sede: str
+    pregunta: str
 
 # --- Endpoints ---
 
@@ -173,12 +320,56 @@ def get_kpis(sede: str):
     total_kwh = monthly_data['energia_total_kwh'].sum()
     anom_count = anom_view[anom_view['anomaly_critical'] == 1].shape[0] if 'anomaly_critical' in anom_view.columns else 0
     
+    # Get ML Accuracy from metrics if available
+    eficiencia = 92 # Fallback
+    if not df_metrics.empty:
+        m = df_metrics[df_metrics['sede'] == sede]
+        if not m.empty:
+            eficiencia = float(m.iloc[0]['accuracy_pct'])
+
     return {
         "total_kwh": total_kwh,
         "anomalías_criticas": anom_count,
         "eficiencia": 92, # Static for MVP
         "meta_eficiencia": 95
     }
+
+@app.get("/api/ml/metrics/{sede}")
+def get_ml_metrics(sede: str):
+    """
+    Retorna las métricas de precisión del modelo ML para una sede.
+    """
+    if df_metrics.empty:
+        return {"sede": sede, "accuracy_pct": 0, "r2": 0, "mae": 0, "rmse": 0}
+    
+    m = df_metrics[df_metrics['sede'] == sede]
+    if m.empty:
+        return {"sede": sede, "accuracy_pct": 0, "r2": 0, "mae": 0, "rmse": 0}
+    
+    return m.iloc[0].to_dict()
+
+@app.get("/api/ml/forecast/{sede}")
+def get_ml_forecast(sede: str):
+    """
+    Retorna el pronóstico mensual de consumo para 2026.
+    """
+    if df_forecast.empty:
+        return {"message": "No forecast data", "data": []}
+    
+    # Filter by sede
+    sede_forecast = df_forecast[df_forecast['sede'] == sede].copy()
+    if sede_forecast.empty:
+        return {"message": f"No forecast for {sede}", "data": []}
+        
+    # Aggregate by Month
+    monthly = sede_forecast.groupby(pd.Grouper(key='timestamp', freq='ME'))['pred_energy_kwh'].sum().reset_index()
+    monthly['month_name'] = monthly['timestamp'].dt.strftime('%b') # Jan, Feb...
+    monthly['month_num'] = monthly['timestamp'].dt.month
+    
+    # Format for chart (list of dicts)
+    chart_data = monthly[['month_name', 'pred_energy_kwh']].to_dict(orient='records')
+    
+    return {"message": "ok", "data": chart_data}
 
 @app.get("/api/consumo-diario/{sede}")
 def get_daily(sede: str):
@@ -223,7 +414,45 @@ def get_recs(sede: str):
     if 'sede' in df_recs.columns:
         df_view = df_recs[df_recs['sede'] == sede]
     else:
-        df_view = df_recs
+        recs_sede = df_recs
+    
+    if recs_sede.empty:
+        return {"message": f"No hay recomendaciones para la sede {sede}", "data": []}
+    
+    # Convertir a dict manteniendo todas las columnas importantes
+    # Columnas esperadas: event_id, category, duration_hours, avg_occupancy, total_kwh, sede
+    return {
+        "message": "ok",
+        "data": recs_sede.to_dict(orient="records")
+    }
+
+@app.post("/api/chat")
+async def chat_groq(request: ChatRequest):
+    logger.info("=" * 60)
+    logger.info(f"💬 CHAT REQUEST: sede='{request.sede}', pregunta='{request.pregunta}'")
+    logger.info("=" * 60)
+    
+    # Create request data for queue
+    request_data = {
+        'sede': request.sede,
+        'pregunta': request.pregunta,
+        'completed': False,
+        'result': None,
+        'request_id': f"{request.sede}_{hash(request.pregunta)}"
+    }
+    
+    # Add to queue
+    await chat_queue.put(request_data)
+    logger.info(f" Request added to queue for {request.sede}")
+    
+    # Wait for processing to complete
+    max_wait_time = 120  # 2 minutes max wait
+    wait_interval = 0.5
+    elapsed_time = 0
+    
+    while not request_data['completed'] and elapsed_time < max_wait_time:
+        await asyncio.sleep(wait_interval)
+        elapsed_time += wait_interval
         
     return {"data": df_view.to_dict(orient="records")}
 

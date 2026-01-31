@@ -2,28 +2,30 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { 
-  Kpi, 
-  ConsumoDiario, 
-  ConsumoSector, 
-  Anomalia, 
-  Recomendacion, 
-  ApiResponse, 
-  ChatRequest, 
-  ChatResponse 
+import {
+  Kpi,
+  ConsumoDiario,
+  ConsumoSector,
+  Anomalia,
+  Recomendacion,
+  ApiResponse,
+  ChatRequest,
+  ChatResponse,
+  MlMetrics,
+  ForecastPoint
 } from './models';
 
 @Injectable({
   providedIn: 'root',
 })
 export class DataService {
-  private readonly apiUrl = 'http://localhost:8000/api';
+  private readonly apiUrl = 'http://localhost:8003/api';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   // Get all sedes
   getSedes(): Observable<string[]> {
-    return this.http.get<{sedes: string[]}>(`${this.apiUrl}/sedes`)
+    return this.http.get<{ sedes: string[] }>(`${this.apiUrl}/sedes`)
       .pipe(map(response => response.sedes));
   }
 
@@ -37,6 +39,16 @@ export class DataService {
         meta_eficiencia: response.meta_eficiencia
       }))
     );
+  }
+
+  // Get ML Metrics for a specific sede
+  getMlMetrics(sede: string): Observable<MlMetrics> {
+    return this.http.get<MlMetrics>(`${this.apiUrl}/ml/metrics/${sede}`);
+  }
+
+  // Get Forecast for a specific sede
+  getForecast(sede: string): Observable<ApiResponse<ForecastPoint[]>> {
+    return this.http.get<ApiResponse<ForecastPoint[]>>(`${this.apiUrl}/ml/forecast/${sede}`);
   }
 
   // Get daily consumption for a specific sede
@@ -65,7 +77,7 @@ export class DataService {
   }
 
   // Check API health
-  checkHealth(): Observable<{message: string; status: string}> {
-    return this.http.get<{message: string; status: string}>(`${this.apiUrl.replace('/api', '')}`);
+  checkHealth(): Observable<{ message: string; status: string }> {
+    return this.http.get<{ message: string; status: string }>(`${this.apiUrl.replace('/api', '')}`);
   }
 }

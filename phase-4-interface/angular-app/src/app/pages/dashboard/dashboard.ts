@@ -2,13 +2,15 @@ import { Component, OnInit, signal, ViewChild, ElementRef, AfterViewInit, effect
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DataService } from '../../core/data';
-import { 
-  Kpi, 
-  ConsumoDiario, 
-  ConsumoSector, 
-  Anomalia, 
-  Recomendacion, 
-  ApiResponse 
+import {
+  Kpi,
+  ConsumoDiario,
+  ConsumoSector,
+  Anomalia,
+  Recomendacion,
+  ApiResponse,
+  MlMetrics,
+  ForecastPoint
 } from '../../core/models';
 
 interface ChatMessage {
@@ -38,6 +40,8 @@ export class Dashboard implements OnInit, AfterViewInit {
   readonly sedes = signal<string[]>([]);
   readonly selectedSede = signal<string>('');
   readonly kpis = signal<Kpi | null>(null);
+  readonly mlMetrics = signal<MlMetrics | null>(null);
+  readonly forecastData = signal<ForecastPoint[]>([]);
   readonly consumoDiario = signal<ConsumoDiario[]>([]);
   readonly consumoSector = signal<ConsumoSector[]>([]);
   readonly anomalias = signal<Anomalia[]>([]);
@@ -51,7 +55,7 @@ export class Dashboard implements OnInit, AfterViewInit {
   readonly currentMessages = signal<ChatMessage[]>([]);
   readonly chatInput = signal<string>('');
   readonly isSending = signal<boolean>(false);
-  
+
   // UI state signals
   readonly showHistory = signal<boolean>(false);
   readonly showDashboard = signal<boolean>(false);
@@ -115,13 +119,17 @@ export class Dashboard implements OnInit, AfterViewInit {
       this.dataService.getConsumoDiario(sede).toPromise(),
       this.dataService.getConsumoSector(sede).toPromise(),
       this.dataService.getAnomalias(sede).toPromise(),
-      this.dataService.getRecomendaciones(sede).toPromise()
-    ]).then(([kpis, consumoDiario, consumoSector, anomalias, recomendaciones]) => {
+      this.dataService.getRecomendaciones(sede).toPromise(),
+      this.dataService.getMlMetrics(sede).toPromise(),
+      this.dataService.getForecast(sede).toPromise()
+    ]).then(([kpis, consumoDiario, consumoSector, anomalias, recomendaciones, mlMetrics, forecast]) => {
       this.kpis.set(kpis || null);
       this.consumoDiario.set(consumoDiario || []);
       this.consumoSector.set(consumoSector || []);
       this.anomalias.set(anomalias?.data || []);
       this.recomendaciones.set(recomendaciones?.data || []);
+      this.mlMetrics.set(mlMetrics || null);
+      this.forecastData.set(forecast?.data || []);
       this.loading.set(false);
     }).catch((err) => {
       this.error.set('Error loading data: ' + err.message);
@@ -182,7 +190,7 @@ export class Dashboard implements OnInit, AfterViewInit {
           sender: 'assistant',
           timestamp: new Date()
         };
-        
+
         this.currentMessages.set([...this.currentMessages(), aiMessage]);
         this.isSending.set(false);
 
@@ -197,7 +205,7 @@ export class Dashboard implements OnInit, AfterViewInit {
           sender: 'assistant',
           timestamp: new Date()
         };
-        
+
         this.currentMessages.set([...this.currentMessages(), errorMessage]);
         this.isSending.set(false);
 
@@ -217,8 +225,8 @@ export class Dashboard implements OnInit, AfterViewInit {
         if (histories[index].title === 'Nuevo chat' && this.currentMessages().length > 0) {
           const firstUserMessage = this.currentMessages().find(m => m.sender === 'user');
           if (firstUserMessage) {
-            histories[index].title = firstUserMessage.text.substring(0, 30) + 
-                                    (firstUserMessage.text.length > 30 ? '...' : '');
+            histories[index].title = firstUserMessage.text.substring(0, 30) +
+              (firstUserMessage.text.length > 30 ? '...' : '');
           }
         }
         this.chatHistories.set([...histories]);
@@ -256,7 +264,7 @@ export class Dashboard implements OnInit, AfterViewInit {
         this.chatHistories.set([...histories]);
       }
     }
-    
+
     // Create new chat
     this.createNewChat();
   }

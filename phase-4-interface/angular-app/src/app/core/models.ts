@@ -47,3 +47,16 @@ export interface ChatResponse {
   respuesta?: string;
   error?: string;
 }
+
+export interface MlMetrics {
+  sede: string;
+  accuracy_pct: number;
+  r2: number;
+  mae: number;
+  rmse: number;
+}
+
+export interface ForecastPoint {
+  month_name: string;
+  pred_energy_kwh: number;
+}
