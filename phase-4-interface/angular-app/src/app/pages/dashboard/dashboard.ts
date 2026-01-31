@@ -2,6 +2,7 @@ import { Component, OnInit, signal, ViewChild, ElementRef, AfterViewInit, effect
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DataService } from '../../core/data';
+import { AuthService } from '../../core/auth.service';
 import {
   Kpi,
   ConsumoDiario,
@@ -59,7 +60,10 @@ export class Dashboard implements OnInit, AfterViewInit {
   readonly showDashboard = signal<boolean>(false);
   readonly showHistoryPanel = signal<boolean>(false);
 
-  constructor(private dataService: DataService) {
+  // Recommendation Filtering
+  readonly filterCategory = signal<string>('ALL'); // ALL, CRITICAL, OPTIMIZATION, MAINTENANCE
+
+  constructor(private dataService: DataService, private auth: AuthService) {
     // Auto-scroll effect for new messages
     effect(() => {
       const messages = this.currentMessages();
@@ -320,5 +324,107 @@ export class Dashboard implements OnInit, AfterViewInit {
 
   formatTimestamp(timestamp: string): string {
     return new Date(timestamp).toLocaleString('es-CO');
+  }
+
+  logout(): void {
+    this.auth.logout();
+  }
+
+  getMaxSectorConsumption(): number {
+    if (this.consumoSector().length === 0) return 0;
+    return Math.max(...this.consumoSector().map(s => s.kWh));
+  }
+
+  // --- Recommendation Helpers ---
+
+  setFilter(category: string): void {
+    this.filterCategory.set(category);
+  }
+
+  // New Signal for Sector Filter
+  readonly filterSector = signal<string>('ALL');
+
+  setSectorFilter(sector: string): void {
+    this.filterSector.set(this.filterSector() === sector ? 'ALL' : sector);
+  }
+
+  get filteredRecommendations(): Recomendacion[] {
+    let result = this.recomendaciones();
+
+    // 1. Filter by Category Type
+    const catFilter = this.filterCategory();
+    if (catFilter !== 'ALL') {
+      result = result.filter(r => this.getRecType(r) === catFilter);
+    }
+
+    // 2. Filter by Sector (Heuristic)
+    const secFilter = this.filterSector();
+    if (secFilter !== 'ALL') {
+      const search = secFilter.toLowerCase();
+      result = result.filter(r => {
+        const content = (r.ai_recommendation || '') + (r.category || '');
+        return content.toLowerCase().includes(search);
+      });
+    }
+
+    // 3. Sort by Date (Newest First)
+    result = result.slice().sort((a, b) => {
+      const dateA = a.start_time ? new Date(a.start_time).getTime() : 0;
+      const dateB = b.start_time ? new Date(b.start_time).getTime() : 0;
+      return dateB - dateA;
+    });
+
+    // 4. Limit to 3 (Most Recent)
+    return result.slice(0, 3);
+  }
+
+  getRecType(rec: Recomendacion): 'CRITICAL' | 'OPTIMIZATION' | 'MAINTENANCE' {
+    const text = (rec.category || '').toLowerCase() + (rec.ai_recommendation || '').toLowerCase();
+
+    if (text.includes('pico') || text.includes('demanda') || text.includes('crítico')) return 'CRITICAL';
+    if (text.includes('mantenimiento') || text.includes('revisión')) return 'MAINTENANCE';
+    return 'OPTIMIZATION'; // Default
+  }
+
+  getRecStyle(rec: Recomendacion): { color: string, icon: string, label: string, badgeBg: string } {
+    const type = this.getRecType(rec);
+    switch (type) {
+      case 'CRITICAL':
+        return {
+          color: 'text-red-400',
+          icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z',
+          label: 'PICO CRÍTICO',
+          badgeBg: 'bg-red-500/10 border-red-500/20'
+        };
+      case 'MAINTENANCE':
+        return {
+          color: 'text-blue-400',
+          icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+          label: 'MANTENIMIENTO',
+          badgeBg: 'bg-blue-500/10 border-blue-500/20'
+        };
+      case 'OPTIMIZATION':
+      default:
+        return {
+          color: 'text-amber-400',
+          icon: 'M13 10V3L4 14h7v7l9-11h-7z',
+          label: 'OPTIMIZACIÓN',
+          badgeBg: 'bg-amber-500/10 border-amber-500/20'
+        };
+    }
+  }
+
+  getCostImpact(kwh: number): string {
+    // Estimado costo por kWh (COP) - Mock value ~800 COP
+    const cost = kwh * 800;
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(cost);
+  }
+
+  formatRecommendationText(text: string | undefined): string {
+    if (!text || text === 'Pending...') {
+      return 'Detectamos un patrón inusual de consumo que requiere atención inmediata para evitar sobrecostos.';
+    }
+    // Parse **text** to <strong>text</strong>
+    return text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>');
   }
 }

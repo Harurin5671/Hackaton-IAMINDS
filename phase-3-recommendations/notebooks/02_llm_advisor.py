@@ -48,45 +48,38 @@ def generate_recommendations():
             llm = ChatGroq(temperature=0.4, groq_api_key=api_key, model_name="llama-3.3-70b-versatile")
             print("Using Groq (llama-3.3-70b)")
         
-        # PROMPT ENGINEERING V2: Role-Playing + Business Impact
+        # PROMPT ENGINEERING V3: User-Friendly & Actionable
         template = """
-        ROLE: You are a Senior Energy Strategy Consultant hired by the University Board.
-        YOUR GOAL: Explain energy waste to the Board of Directors (who are NOT engineers). They care about Money, Reputation, and Sustainability.
+        ACT AS: Energy Efficiency Expert.
+        AUDIENCE: Facility Managers (Non-technical).
         
         INPUT DATA:
         - Location: {sede}
-        - Problem Type: {category} (Duration: {duration} hours)
-        - Energy Wasted: {kwh} kWh
-        - Estimated Cost: ${cost} COP
-        - Context: Time {start} to {end} | Occupancy was {occ}% (very low)
+        - Anomaly: {category} (Duration: {duration}h)
+        - Wasted Energy: {kwh} kWh
+        - Cost: ${cost} COP
+        - Time: {start} to {end}
+        - Occupancy: {occ}%
         
-        DOMAIN KNOWLEDGE CHEAT SHEET:
-        - Kitchens: Often leave industrial freezers open or ovens on cleaning cycles.
-        - Classrooms: Lights left on, Projectors in standby, Windows open while AC is on.
-        - Labs: Compressors, Centrifuges, or fume hoods left running.
-        - Offices: Computers not sleeping, personal heaters.
+        TASK: Write a SHORT, CLEAR advice card in Spanish.
         
-        TASK: Write a "Critical Incident Card" in Markdown.
+        FORMAT (Strictly follow this structure):
         
-        STRUCTURE REQUIRED:
-        ### 🚨 [Catchy Headline in Spanish]
+        # 🚨 [Title: Short & Descriptive] (e.g. "Consumo Nocturno Inesperado")
         
-        **📉 What happened?**
-        (1 simple sentence in Spanish. Explain clearly. E.g., "While nobody was on campus, the machinery kept running at full power.")
+        **Problema:**
+        [One simple sentence explaining what happened. e.g. "Detectamos encendido de equipos a las 3 AM sin personal."]
         
-        **💸 The Cost**
-        "This incident alone cost the university approx **${cost} COP**."
+        **Impacto:**
+        Costó aprox **${cost} COP** desperdiciados.
         
-        **🛠️ Immediate Fix (The "Quick Win")**
-        1. [Actionable step 1]
-        2. [Actionable step 2]
+        **Acción Inmediata:**
+        *   [Action 1: Specific & Imperative. e.g. "Revisar termostato en Cafetería"]
+        *   [Action 2: Simple step]
         
-        **🔮 Long-term Strategy**
-        (1 sentence recommendation like "Install motion sensors" or "Change Shift policy")
-        
-        TONE: Professional, Direct, Urgent.
+        TONE: Helpful, Urgent, Professional.
         LANGUAGE: Spanish (Colombia).
-        NO PREAMBLE. JUST THE MARKDOWN CARD.
+        LENGTH: Keep it short. No fluff.
         """
         
         prompt = PromptTemplate(

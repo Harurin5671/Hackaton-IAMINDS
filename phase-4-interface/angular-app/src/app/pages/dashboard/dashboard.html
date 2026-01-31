@@ -1,632 +1,489 @@
-<h1>hola mundo</h1>
-<div class="h-screen w-screen bg-gray-900 flex flex-col overflow-hidden">
+<div class="h-screen w-screen bg-indra-dark text-indra-text flex flex-col overflow-hidden font-sans">
   <!-- Header -->
-  <header class="bg-gray-800 border-b border-gray-700">
-    <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between items-center h-14">
-        <div class="flex items-center">
-          <h1 class="text-xl font-bold text-white flex items-center">
-            <span class="text-xl mr-2">👻</span>
-            GhostEnergy AI
-          </h1>
-        </div>
+  <header class="bg-indra-dark border-b border-gray-800 h-16 flex items-center justify-between px-6 z-10 shrink-0">
+    <!-- Logo Area -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <span class="text-xl font-bold tracking-wider text-white">INDRA</span>
+        <span class="text-xl font-light text-gray-400">GROUP</span>
+      </div>
+      <div class="h-6 w-px bg-gray-700 mx-2"></div>
+    </div>
 
-        <!-- Sede Selector - Centered -->
-        <div class="flex items-center space-x-3">
-          <label for="sede-select" class="block text-sm font-medium text-gray-300">
-            Sede:
-          </label>
-          <select id="sede-select" [value]="selectedSede()" (change)="onSedeChange($any($event.target).value)"
-            class="block w-64 pl-3 pr-10 py-2 text-sm bg-gray-700 text-white border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-md border"
-            [disabled]="loading()">
-            @for (sede of sedes(); track sede) {
-            <option [value]="sede">{{ sede }}</option>
-            }
-          </select>
+    <!-- Center: Powered By -->
+    <div class="hidden md:flex flex-col items-center">
+      <h1 class="text-lg font-bold tracking-widest text-indra-teal">GHOSTENERGY AI</h1>
+      <span class="text-[10px] text-gray-500 uppercase tracking-widest">Advanced Energy Management</span>
+    </div>
 
-          @if (loading()) {
-          <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+    <!-- Right: Filters & User -->
+    <div class="flex items-center gap-6">
+      <!-- Sede Selector -->
+      <div class="flex items-center bg-indra-card rounded border border-gray-700 px-3 py-1">
+        <svg class="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <span class="text-xs text-gray-400 mr-2">SEDE:</span>
+        <select [value]="selectedSede()" (change)="onSedeChange($any($event.target).value)"
+          class="bg-transparent text-sm font-bold text-white focus:outline-none uppercase cursor-pointer">
+          @for (sede of sedes(); track sede) {
+          <option [value]="sede" class="bg-indra-dark text-gray-300">{{ sede }}</option>
           }
-        </div>
+        </select>
+      </div>
 
-        <div class="w-48"></div>
+      <!-- User Profile -->
+      <div class="flex items-center gap-2 cursor-pointer group relative" (click)="logout()" title="Cerrar Sesión">
+        <div
+          class="w-8 h-8 rounded bg-gray-700 flex items-center justify-center group-hover:bg-red-900 transition-colors">
+          <span class="text-xs font-bold text-white group-hover:hidden">U</span>
+          <!-- Logout Icon -->
+          <svg class="w-4 h-4 text-white hidden group-hover:block" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+        </div>
       </div>
     </div>
   </header>
 
-  <!-- Error Alert -->
-  @if (error()) {
-  <div class="bg-red-900/50 border-l-4 border-red-500 p-4">
-    <div class="flex">
-      <div class="flex-shrink-0">
-        <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd"
-            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-            clip-rule="evenodd" />
-        </svg>
-      </div>
-      <div class="ml-3">
-        <p class="text-sm text-red-200">{{ error() }}</p>
-      </div>
-    </div>
-  </div>
-  }
+  <!-- Main Layout -->
+  <main class="flex-1 flex overflow-hidden">
 
-  <!-- Main Content -->
-  <main class="flex-1 flex overflow-hidden min-h-0">
-    <!-- Left Sidebar - Full Chat Interface -->
-    <aside class="w-96 bg-gray-800 border-r border-gray-700 flex flex-col">
-      <!-- Chat Header with History Toggle -->
-      <div class="p-3 border-b border-gray-700 flex items-center justify-between">
-        <h2 class="text-sm font-semibold text-gray-200 flex items-center">
-          💬 Chat
-        </h2>
-        <div class="flex items-center gap-2">
-          <!-- History Chip - Only show if there are chats -->
-          @if (chatHistories().length > 0) {
-          <button (click)="toggleHistoryPanel()"
-            class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-full text-xs text-gray-300 flex items-center gap-1 transition-colors">
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {{ chatHistories().length }}
-          </button>
-          }
+    <!-- LEFT: Dashboard Content (Flexible) -->
+    <div class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-700">
 
-          <!-- New Chat Button -->
-          <button (click)="saveAndCreateNewChat()"
-            class="p-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors"
-            title="Guardar y nuevo chat">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
+      <!-- Ticker / Status Bar -->
+      <div class="flex justify-between items-center mb-6">
+
+        <span class="text-[10px] text-indra-teal uppercase tracking-wider flex items-center">
+          <svg class="w-3 h-3 mr-1 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Última actualización: Hace un momento
+        </span>
+      </div>
+
+      <!-- KPI GRID -->
+      @if (kpis()) {
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <!-- KPI 1: Total -->
+        <div
+          class="bg-indra-card border border-gray-800 p-4 rounded relative overflow-hidden group hover:border-indra-teal transition-all duration-300">
+          <div class="flex justify-between items-start mb-2">
+            <div class="p-2 bg-gray-800/50 rounded text-indra-teal">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <span class="text-[10px] font-bold text-green-400 bg-green-900/30 px-1.5 py-0.5 rounded">+4.2%</span>
+          </div>
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Consumo Total</p>
+          <h3 class="text-2xl font-bold text-white tracking-tight mt-1">{{ formatNumber(kpis()!.total_kwh) }} <span
+              class="text-xs text-gray-500 font-normal">kWh</span></h3>
+        </div>
+
+        <!-- KPI 2: Forecast -->
+        @if (forecast()) {
+        <div
+          class="bg-indra-card border border-gray-800 p-4 rounded relative overflow-hidden group hover:border-indra-teal transition-all duration-300">
+          <div class="flex justify-between items-start mb-2">
+            <div class="p-2 bg-gray-800/50 rounded text-indigo-400">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+              </svg>
+            </div>
+          </div>
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Pronóstico 2026</p>
+          <h3 class="text-2xl font-bold text-white tracking-tight mt-1">{{ formatNumber(forecast().total_2026) }} <span
+              class="text-xs text-gray-500 font-normal">kWh</span></h3>
+        </div>
+        }
+
+        <!-- KPI 3: Anomalies -->
+        <div
+          class="bg-indra-card border border-gray-800 p-4 rounded relative overflow-hidden group hover:border-indra-teal transition-all duration-300">
+          <div class="flex justify-between items-start mb-2">
+            <div class="p-2 bg-gray-800/50 rounded text-red-500">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <span class="text-2xl font-bold text-red-500">{{ kpis()!.critical_anomalies }}</span>
+          </div>
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Anomalías Críticas</p>
+          <p class="text-[10px] text-gray-600 mt-1">Detectadas últimas 24h</p>
+        </div>
+
+        <!-- KPI 4: Efficiency -->
+        <div
+          class="bg-indra-card border border-gray-800 p-4 rounded relative overflow-hidden group hover:border-indra-teal transition-all duration-300">
+          <div class="flex justify-between items-start mb-2">
+            <div class="p-2 bg-gray-800/50 rounded text-green-500">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <span class="text-2xl font-bold text-white">{{ kpis()!.eficiencia }}%</span>
+          </div>
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Eficiencia Global</p>
+          <!-- Progress Bar -->
+          <div class="w-full bg-gray-700 h-1 mt-3 rounded-full overflow-hidden">
+            <div class="bg-indra-teal h-full" [style.width.%]="kpis()!.eficiencia"></div>
+          </div>
         </div>
       </div>
+      }
 
-      <!-- History Panel - Collapsible -->
-      @if (showHistoryPanel()) {
-      <div class="border-b border-gray-700 bg-gray-750 max-h-64 overflow-y-auto">
-        <div class="p-3">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-semibold text-gray-400 uppercase">Historial</span>
-            <button (click)="toggleHistoryPanel()" class="p-1 rounded hover:bg-gray-700 text-gray-400 hover:text-white">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+      <!-- RECOMMENDATIONS (Horizontal Grid) -->
+      @if (recomendaciones().length > 0) {
+      <div class="mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+            <svg class="w-4 h-4 text-indra-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Recomendaciones del Copiloto
+          </h3>
+
+          <!-- Filters Group -->
+          <div class="flex gap-4">
+            <!-- Sector Dropdown -->
+            <div class="relative group z-20">
+              <button
+                class="flex items-center gap-2 bg-indra-dark border border-gray-700 text-gray-400 text-[10px] font-bold px-3 py-1 rounded hover:text-white hover:border-indra-teal transition-all">
+                {{ filterSector() === 'ALL' ? 'POR SECTOR' : filterSector() }}
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div
+                class="absolute right-0 top-full mt-1 w-40 bg-indra-card border border-gray-700 rounded shadow-xl hidden group-hover:block">
+                <button (click)="setSectorFilter('ALL')"
+                  class="block w-full text-left px-3 py-2 text-[10px] hover:bg-white/10 text-gray-300">TODOS</button>
+                @for (sec of consumoSector(); track sec.sector) {
+                <button (click)="setSectorFilter(sec.sector)"
+                  class="block w-full text-left px-3 py-2 text-[10px] hover:bg-white/10 text-gray-300">{{ sec.sector
+                  }}</button>
+                }
+              </div>
+            </div>
+
+            <!-- Type Filter -->
+            <div class="flex bg-indra-dark rounded p-1 border border-gray-700">
+              <button (click)="setFilter('ALL')" [class.bg-indra-teal]="filterCategory() === 'ALL'"
+                [class.text-black]="filterCategory() === 'ALL'" [class.text-gray-400]="filterCategory() !== 'ALL'"
+                class="px-3 py-1 text-[10px] font-bold rounded-sm transition-all hover:text-white">TODAS</button>
+              <button (click)="setFilter('CRITICAL')" [class.bg-indra-teal]="filterCategory() === 'CRITICAL'"
+                [class.text-black]="filterCategory() === 'CRITICAL'"
+                [class.text-gray-400]="filterCategory() !== 'CRITICAL'"
+                class="px-3 py-1 text-[10px] font-bold rounded-sm transition-all hover:text-white">CRITICAS</button>
+              <button (click)="setFilter('OPTIMIZATION')" [class.bg-indra-teal]="filterCategory() === 'OPTIMIZATION'"
+                [class.text-black]="filterCategory() === 'OPTIMIZATION'"
+                [class.text-gray-400]="filterCategory() !== 'OPTIMIZATION'"
+                class="px-3 py-1 text-[10px] font-bold rounded-sm transition-all hover:text-white">OPTIMIZACIÓN</button>
+              <button (click)="setFilter('MAINTENANCE')" [class.bg-indra-teal]="filterCategory() === 'MAINTENANCE'"
+                [class.text-black]="filterCategory() === 'MAINTENANCE'"
+                [class.text-gray-400]="filterCategory() !== 'MAINTENANCE'"
+                class="px-3 py-1 text-[10px] font-bold rounded-sm transition-all hover:text-white">MANTENIMIENTO</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          @for (rec of filteredRecommendations; track rec.event_id) {
+          <!-- Dynamic Card -->
+          @let style = getRecStyle(rec);
+          <div
+            class="bg-indra-card border border-gray-800 rounded-lg p-5 hover:border-gray-600 transition-all group relative overflow-hidden">
+            <!-- Top Accent Line -->
+            <div class="absolute top-0 left-0 w-full h-1" [class]="style.color.replace('text-', 'bg-')"></div>
+
+            <!-- Header -->
+            <div class="flex items-center gap-2 mb-3">
+              <div class="p-1 rounded bg-opacity-20" [class]="style.color">
+                <!-- Render Icon dynamically via innerHTML not possible safely in Angular template easily without sanitizer, so using a switch or generic icon. 
+                              Actually, standard SVG paths are best. We can use *ngSwitch or just CSS classes.
+                              For simplicity, we use the style.color to tint a generic icon or specific blocks. -->
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="style.icon" />
+                </svg>
+              </div>
+              <span class="text-[10px] font-bold uppercase tracking-widest" [class]="style.color">{{ style.label
+                }}</span>
+            </div>
+
+            <!-- Title & Body -->
+            <h4 class="text-sm font-bold text-white mb-2 line-clamp-1">{{ rec.category === 'Pico de Demanda Inesperado'
+              ? 'Demanda Inesperada' : rec.category }}</h4>
+            <p class="text-xs text-gray-400 mb-4 line-clamp-3 leading-relaxed"
+              [innerHTML]="formatRecommendationText(rec.ai_recommendation)">
+            </p>
+
+            <!-- Footer Tag -->
+            <div class="mt-auto inline-block px-3 py-1 rounded border text-[10px] font-bold"
+              [class]="style.badgeBg + ' ' + style.color">
+              {{ style.label === 'OPTIMIZACIÓN' ? 'Ahorro:' : 'Impacto:' }} {{ getCostImpact(rec.total_kwh || 0) }}
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+      }
+
+
+      <!-- Inefficiency Analysis (New Section) -->
+      @if (inefficiencyAnalysis()) {
+      <div class="mb-6">
+        <h3 class="text-sm font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+          <svg class="w-4 h-4 text-indra-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+          </svg>
+          Análisis de Ineficiencia y Desperdicio
+        </h3>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          <!-- 1. Ranking Sectores Ineficientes -->
+          <div class="bg-indra-card border border-gray-800 rounded-lg p-5 hover:border-gray-600 transition-all">
+            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center">
+              <span class="w-2 h-2 rounded-full bg-red-500 mr-2"></span> Top Sectores Ineficientes
+            </h4>
+            @if (inefficiencyAnalysis().inefficient_sectors_ranking.length > 0) {
+            <div class="space-y-3">
+              @for (sector of inefficiencyAnalysis().inefficient_sectors_ranking.slice(0, 5); track
+              sector.sector_nombre) {
+              <div
+                class="flex items-center justify-between p-3 bg-gray-900/50 rounded border-l-2 border-red-500 hover:bg-gray-800 transition-colors">
+                <div>
+                  <p class="text-xs font-bold text-white capitalize">{{ sector.sector_nombre }}</p>
+                  <p class="text-[10px] text-red-300 font-mono">Desvío: +{{ sector['%_desviaje'] }}%</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs font-bold text-white">{{ formatNumber(sector.desperdicio_kwh) }} kWh</p>
+                  <p class="text-[9px] text-gray-500 uppercase">Desperdicio est.</p>
+                </div>
+              </div>
+              }
+            </div>
+            } @else {
+            <p class="text-xs text-green-400 font-mono">No se encontraron ineficiencias críticas.</p>
+            }
           </div>
 
-          <div class="space-y-1">
-            <!-- Today -->
-            @if (getChatsByTimeframe('today').length > 0) {
-            <div class="mb-2">
-              <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Hoy</p>
-              <div class="space-y-1">
-                @for (chat of getChatsByTimeframe('today'); track chat.id) {
-                <button (click)="selectChat(chat.id)" [class.bg-gray-700]="currentChatId() === chat.id"
-                  [class.border-l-2]="currentChatId() === chat.id" [class.border-blue-500]="currentChatId() === chat.id"
-                  class="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-gray-700 transition-colors">
-                  <p class="text-gray-200 truncate">{{ chat.title }}</p>
-                  <p class="text-gray-500 text-[10px]">{{ formatRelativeTime(chat.timestamp) }}</p>
-                </button>
-                }
+          <!-- 2. Horas Críticas -->
+          <div class="bg-indra-card border border-gray-800 rounded-lg p-5 hover:border-gray-600 transition-all">
+            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center">
+              <span class="w-2 h-2 rounded-full bg-amber-400 mr-2"></span> Horas Críticas (Pico)
+            </h4>
+            @if (inefficiencyAnalysis().critical_hours.length > 0) {
+            <div class="space-y-3">
+              @for (item of inefficiencyAnalysis().critical_hours; track item.sector) {
+              <div class="flex items-center justify-between group">
+                <span class="text-xs text-gray-300 capitalize w-24">{{ item.sector }}</span>
+                <div class="flex-1 mx-3 bg-gray-800 h-1.5 rounded-full overflow-hidden">
+                  <div class="bg-amber-500 h-full rounded-full" [style.width.%]="(item.peak_hour / 24) * 100"></div>
+                </div>
+                <span class="text-xs font-mono text-amber-300 w-10 text-right">{{ item.peak_hour }}:00</span>
               </div>
+              }
             </div>
+            <p class="text-[9px] text-gray-600 mt-4 text-center uppercase tracking-wider">Distribución horaria de picos
+              máximos</p>
             }
+          </div>
 
-            <!-- Yesterday -->
-            @if (getChatsByTimeframe('yesterday').length > 0) {
-            <div class="mb-2">
-              <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Ayer</p>
-              <div class="space-y-1">
-                @for (chat of getChatsByTimeframe('yesterday'); track chat.id) {
-                <button (click)="selectChat(chat.id)" [class.bg-gray-700]="currentChatId() === chat.id"
-                  [class.border-l-2]="currentChatId() === chat.id" [class.border-blue-500]="currentChatId() === chat.id"
-                  class="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-gray-700 transition-colors">
-                  <p class="text-gray-200 truncate">{{ chat.title }}</p>
-                  <p class="text-gray-500 text-[10px]">{{ formatRelativeTime(chat.timestamp) }}</p>
-                </button>
-                }
+          <!-- 3. Alertas de Desperdicio -->
+          <div class="bg-indra-card border border-gray-800 rounded-lg p-5 hover:border-gray-600 transition-all">
+            <h4
+              class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center justify-between">
+              <div class="flex items-center">
+                <span class="w-2 h-2 rounded-full bg-orange-500 mr-2"></span> Alertas de Desperdicio
               </div>
+              @if(inefficiencyAnalysis().waste_stats) {
+              <span
+                class="text-[9px] font-bold text-red-400 bg-red-900/20 px-1.5 py-0.5 rounded border border-red-900/30">
+                Total: {{ formatNumber(inefficiencyAnalysis().waste_stats.total_waste_kwh) }} kWh
+              </span>
+              }
+            </h4>
+
+            @if (inefficiencyAnalysis().recent_anomalies.length > 0) {
+            <div class="space-y-2 max-h-52 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 pr-1">
+              @for (alert of inefficiencyAnalysis().recent_anomalies; track alert.timestamp) {
+              <div
+                class="p-2 border-l-2 border-orange-500 bg-gray-900/30 rounded pl-3 hover:bg-gray-800 transition-colors">
+                <div class="flex justify-between items-start mb-1">
+                  <span class="text-[10px] font-bold text-orange-300 capitalize">{{ alert.sector_nombre }}</span>
+                  <span class="text-[9px] text-gray-500 font-mono">{{ alert.timestamp_str }}</span>
+                </div>
+                <div class="flex justify-between items-center text-[10px] text-gray-400">
+                  <span>Real: {{ formatNumber(alert.consumo_kwh) }}</span>
+                  <span class="text-red-400 font-bold">Exceso: +{{ formatNumber(alert.error) }}</span>
+                </div>
+              </div>
+              }
             </div>
-            }
-
-            <!-- Last 7 days -->
-            @if (getChatsByTimeframe('week').length > 0) {
-            <div class="mb-2">
-              <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Últimos 7 días</p>
-              <div class="space-y-1">
-                @for (chat of getChatsByTimeframe('week'); track chat.id) {
-                <button (click)="selectChat(chat.id)" [class.bg-gray-700]="currentChatId() === chat.id"
-                  [class.border-l-2]="currentChatId() === chat.id" [class.border-blue-500]="currentChatId() === chat.id"
-                  class="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-gray-700 transition-colors">
-                  <p class="text-gray-200 truncate">{{ chat.title }}</p>
-                  <p class="text-gray-500 text-[10px]">{{ formatRelativeTime(chat.timestamp) }}</p>
-                </button>
-                }
-              </div>
+            } @else {
+            <div class="flex items-center justify-center h-20 text-gray-500 text-xs">
+              Sin alertas recientes
             </div>
             }
           </div>
         </div>
       </div>
       }
+      <!-- Forecast Chart -->
+      @if (forecast() && forecast().next_7_days) {
+      <div class="bg-indra-card border border-gray-800 p-5 rounded-lg">
+        <div class="flex justify-between items-center mb-6">
+          <div>
+            <h3 class="text-xs font-bold text-white uppercase tracking-widest">Proyección Energética</h3>
+            <!-- FILTERS -->
 
-      <!-- Chat Messages Area -->
-      <div class="flex-1 overflow-y-auto p-3 space-y-3" #chatContainer>
-        @if (currentMessages().length === 0) {
-        <div class="text-center py-12">
-          <div class="text-gray-600 mb-3">
-            <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          </div>
+          <div class="text-right">
+            <span class="block text-xs font-mono text-indra-teal">MAX: {{ formatNumber(forecast().max_daily_kwh)
+              }}</span>
+            <span class="text-[10px] text-gray-500">(7 Días)</span>
+          </div>
+        </div>
+
+        <div class="flex items-end space-x-2 h-48">
+          @for (day of forecast().next_7_days; track day.date_str) {
+          <div class="flex-1 flex flex-col justify-end items-center group relative h-full">
+            <div
+              class="w-full bg-linear-to-t from-indra-teal/20 to-indra-teal/80 rounded-t hover:to-indra-teal transition-all cursor-pointer relative"
+              [style.height.%]="((day.pred_energy_kwh / (forecast().max_daily_kwh || 100)) * 90) + 5">
+              <!-- Values on hover -->
+              <div
+                class="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 text-[10px] text-white bg-black px-1 rounded whitespace-nowrap z-10">
+                {{ formatNumber(day.pred_energy_kwh) }}
+              </div>
+            </div>
+            <div class="text-[9px] text-gray-500 mt-2 uppercase tracking-tight font-bold">
+              {{ day.date_str | date:'EEE' }}
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+      }
+
+      <!-- Consumo Sector Stats -->
+      <div class="bg-indra-card border border-gray-800 p-5 rounded-lg">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-xs font-bold text-white uppercase tracking-widest flex gap-2">
+            <svg class="w-4 h-4 text-indra-teal" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
             </svg>
-          </div>
-          <p class="text-sm text-gray-400">Inicia una conversación</p>
+            Consumo por Sector
+          </h3>
         </div>
-        } @else {
-        @for (message of currentMessages(); track message.id) {
-        @if (message.sender === 'assistant') {
-        <!-- AI Message -->
-        <div class="flex items-start gap-2">
-          <div class="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-            <span class="text-white text-sm">👻</span>
-          </div>
-          <div class="flex-1">
-            <div class="bg-gray-700 rounded-lg rounded-tl-sm p-3">
-              <p class="text-sm text-gray-100 whitespace-pre-wrap">{{ message.text }}</p>
-            </div>
-            <p class="text-[10px] text-gray-500 mt-1 ml-1">{{ message.timestamp | date:'short' }}</p>
-          </div>
-        </div>
-        } @else {
-        <!-- User Message -->
-        <div class="flex items-start gap-2 justify-end">
-          <div class="flex-1 flex justify-end">
-            <div class="max-w-[85%]">
-              <div class="bg-blue-600 rounded-lg rounded-tr-sm p-3">
-                <p class="text-sm text-white whitespace-pre-wrap">{{ message.text }}</p>
+
+        <div class="space-y-4">
+          @for (sector of consumoSector().slice(0, 5); track sector.sector) {
+          <div class="relative py-2 border-b border-gray-800 last:border-0">
+            <div class="flex justify-between items-center mb-1 relative z-10">
+              <span class="text-xs font-bold text-gray-400 uppercase tracking-wider w-24 truncate"
+                title="{{sector.sector}}">{{ sector.sector }}</span>
+              <div class="flex-1 mx-4 h-2 bg-gray-800 rounded-full overflow-hidden relative">
+                <div
+                  class="h-full bg-indra-teal shadow-[0_0_10px_rgba(6,182,212,0.5)] rounded-full transition-all duration-500"
+                  [style.width.%]="(sector.kWh / getMaxSectorConsumption()) * 100"></div>
               </div>
-              <p class="text-[10px] text-gray-500 mt-1 mr-1 text-right">{{ message.timestamp | date:'short' }}</p>
-            </div>
-          </div>
-          <div class="w-7 h-7 bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
-            <span class="text-gray-200 text-xs font-semibold">U</span>
-          </div>
-        </div>
-        }
-        }
-
-        @if (isSending()) {
-        <div class="flex items-start gap-2">
-          <div class="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-            <span class="text-white text-sm">👻</span>
-          </div>
-          <div class="bg-gray-700 rounded-lg rounded-tl-sm p-3">
-            <div class="flex space-x-2">
-              <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-              <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-              <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-            </div>
-          </div>
-        </div>
-        }
-        }
-      </div>
-
-      <!-- Chat Input -->
-      <div class="p-3 border-t border-gray-700">
-        <div class="flex items-center gap-2">
-          <input [(ngModel)]="chatInput" (keydown)="handleKeyDown($event)" type="text" placeholder="Escribe aquí..."
-            class="flex-1 px-3 py-2 text-sm bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            [disabled]="isSending()" />
-          <button (click)="sendMessage()" [disabled]="!chatInput().trim() || isSending()"
-            class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-          </button>
-        </div>
-      </div>
-    </aside>
-
-    <!-- Center Content - Dashboard -->
-    <div class="flex-1 flex flex-col bg-gray-900 overflow-hidden min-h-0">
-      <!-- Dashboard Header -->
-      <div class="p-4 border-b border-gray-700">
-        <h2 class="text-xl font-bold text-white flex items-center">
-          📊 Dashboard
-        </h2>
-      </div>
-
-      <!-- Dashboard Content -->
-      <div class="flex-1 overflow-y-auto p-6">
-        <div class="max-w-7xl mx-auto space-y-6">
-          <!-- KPI Cards -->
-          @if (kpis()) {
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Total Consumption -->
-            <div class="bg-gray-800 border border-gray-700 rounded-lg p-4">
-              <div class="flex items-center justify-between mb-2">
-                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
+              <div class="text-right w-20">
+                <span class="block text-xs font-bold text-white">{{ formatNumber(sector.kWh) }} kWh</span>
               </div>
-              <h3 class="text-sm font-medium text-gray-400 mb-1">Consumo Total</h3>
-              <p class="text-2xl font-bold text-white">{{ formatNumber(kpis()!.total_kwh) }}</p>
-              <p class="text-xs text-gray-500 mt-1">kWh este mes</p>
-            </div>
-
-            <!-- Forecast 2026 (New KPI) -->
-            @if (forecast()) {
-            <div class="bg-gray-800 border border-gray-700 rounded-lg p-4">
-              <div class="flex items-center justify-between mb-2">
-                <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                  </svg>
-                </div>
-              </div>
-              <h3 class="text-sm font-medium text-gray-400 mb-1">Pronóstico 2026</h3>
-              <p class="text-2xl font-bold text-white">{{ formatNumber(forecast().total_2026) }}</p>
-              <p class="text-xs text-gray-500 mt-1">Prox. Mes: {{ formatNumber(forecast().next_month_pred) }} kWh</p>
-            </div>
-            }
-
-            <!-- Critical Anomalies -->
-            <div class="bg-gray-800 border border-gray-700 rounded-lg p-4">
-              <div class="flex items-center justify-between mb-2">
-                <div class="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
-                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                </div>
-              </div>
-              <h3 class="text-sm font-medium text-gray-400 mb-1">Anomalías Críticas</h3>
-              <p class="text-2xl font-bold text-white">{{ kpis()!.critical_anomalies }}</p>
-              <p class="text-xs text-gray-500 mt-1">detectadas</p>
-            </div>
-
-            <!-- Efficiency -->
-            <div class="bg-gray-800 border border-gray-700 rounded-lg p-4">
-              <div class="flex items-center justify-between mb-2">
-                <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              </div>
-              <h3 class="text-sm font-medium text-gray-400 mb-1">Eficiencia</h3>
-              <p class="text-2xl font-bold text-white">{{ kpis()!.eficiencia }}%</p>
-              <p class="text-xs text-gray-500 mt-1">meta: {{ kpis()!.meta_eficiencia }}%</p>
-            </div>
-
-            <!-- Current Sede -->
-            <div class="bg-gray-800 border border-gray-700 rounded-lg p-4">
-              <div class="flex items-center justify-between mb-2">
-                <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                </div>
-              </div>
-              <h3 class="text-sm font-medium text-gray-400 mb-1">Sede Actual</h3>
-              <p class="text-2xl font-bold text-white">{{ selectedSede() }}</p>
-              <p class="text-xs text-gray-500 mt-1">seleccionada</p>
-            </div>
-          </div>
-          }
-
-          <!-- Charts Placeholder -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Consumo Diario Chart -->
-            <div class="bg-gray-800 border border-gray-700 rounded-lg p-5">
-              <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                Consumo Diario
-              </h3>
-              @if (consumoDiario().length > 0) {
-              <div class="space-y-2 max-h-64 overflow-y-auto">
-                @for (item of consumoDiario().slice(-10); track item.timestamp) {
-                <div class="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg">
-                  <span class="text-sm text-gray-300">{{ item.timestamp }}</span>
-                  <span class="text-sm font-semibold text-white">{{ formatNumber(item.energia_total_kwh) }} kWh</span>
-                </div>
-                }
-              </div>
-              } @else {
-              <div class="h-64 flex items-center justify-center">
-                <p class="text-gray-500 text-sm">No hay datos disponibles</p>
-              </div>
-              }
-            </div>
-
-            <!-- Consumo por Sector -->
-            <div class="bg-gray-800 border border-gray-700 rounded-lg p-5">
-              <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                </svg>
-                Consumo por Sector
-              </h3>
-              @if (consumoSector().length > 0) {
-              <div class="space-y-2 max-h-64 overflow-y-auto">
-                @for (sector of consumoSector().slice(-10); track sector.timestamp + sector.sector) {
-                <div class="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg">
-                  <div class="flex-1">
-                    <p class="text-sm font-medium text-white">{{ sector.sector }}</p>
-                    <p class="text-xs text-gray-500">{{ sector.timestamp }}</p>
-                  </div>
-                  <span class="text-sm font-semibold text-white ml-2">{{ formatNumber(sector.kWh) }} kWh</span>
-                </div>
-                }
-              </div>
-              } @else {
-              <div class="h-64 flex items-center justify-center">
-                <p class="text-gray-500 text-sm">No hay datos disponibles</p>
-              </div>
-              }
-            </div>
-          </div>
-
-          <!-- Forecast Chart -->
-          @if (forecast() && forecast().next_7_days) {
-          <div class="bg-gray-800 border border-gray-700 rounded-lg p-5">
-            <h3 class="text-lg font-semibold text-white mb-4 flex items-center justify-between">
-              <div class="flex items-center">
-                <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-                Proyección Energética (Próx. 7 Días)
-              </div>
-              <!-- Debug Info -->
-              <span class="text-xs text-gray-500 hidden sm:block">
-                Max: {{ formatNumber(forecast().max_daily_kwh) }} kWh
-              </span>
-            </h3>
-
-            <div class="space-y-2">
-              <!-- Bar Chart Container -->
-              <div class="flex items-end space-x-2 h-48 pt-6 pb-2 border-b border-gray-700">
-                @for (day of forecast().next_7_days; track day.date_str) {
-                <div class="flex-1 flex flex-col justify-end items-center group relative h-full">
-                  <!-- Tooltip (Positioned relative to bar top) -->
-                  <div class="w-full relative flex flex-col justify-end"
-                    [style.height.%]="((day.pred_energy_kwh / (forecast().max_daily_kwh || 100)) * 85) + 5">
-
-                    <!-- Bar -->
-                    <div
-                      class="w-full bg-indigo-500 rounded-t hover:bg-indigo-400 transition-all cursor-pointer h-full relative">
-                      <!-- Tooltip Value -->
-                      <div
-                        class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 border border-gray-600 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none">
-                        {{ formatNumber(day.pred_energy_kwh) }} kWh
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- X-Axis Label -->
-                  <div class="text-[10px] text-gray-400 mt-2 rotate-0 truncate w-full text-center font-medium">
-                    {{ day.date_str | date:'dd/MM' }}
-                  </div>
-                </div>
-                }
-              </div>
-            </div>
-          </div>
-
-          }
-
-          <!-- Inefficiency Analysis (New Section) -->
-          @if (inefficiencyAnalysis()) {
-          <div class="space-y-6">
-            <h3 class="text-xl font-bold text-white flex items-center border-b border-gray-700 pb-2">
-              <span class="mr-2">📉</span> Análisis de Ineficiencia y Desperdicio
-            </h3>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-              <!-- 1. Ranking Sectores Ineficientes -->
-              <div class="bg-gray-800 border border-gray-700 rounded-lg p-5 col-span-1 lg:col-span-1">
-                <h4 class="text-sm font-semibold text-gray-300 mb-3 flex items-center">
-                  <svg class="w-4 h-4 mr-2 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-                  </svg>
-                  Top Sectores Ineficientes
-                </h4>
-                @if (inefficiencyAnalysis().inefficient_sectors_ranking.length > 0) {
-                <div class="space-y-3">
-                  @for (sector of inefficiencyAnalysis().inefficient_sectors_ranking.slice(0, 5); track
-                  sector.sector_nombre) {
-                  <div
-                    class="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg border-l-4 border-red-500">
-                    <div>
-                      <p class="text-sm font-bold text-white capitalize">{{ sector.sector_nombre }}</p>
-                      <p class="text-xs text-red-300">Desvío: +{{ sector['%_desviaje'] }}%</p>
-                    </div>
-                    <div class="text-right">
-                      <p class="text-sm font-bold text-white">{{ formatNumber(sector.desperdicio_kwh) }} kWh</p>
-                      <p class="text-[10px] text-gray-500">Desperdicio est.</p>
-                    </div>
-                  </div>
-                  }
-                </div>
-                } @else {
-                <p class="text-sm text-green-400">No se encontraron ineficiencias críticas.</p>
-                }
-              </div>
-
-              <!-- 2. Horas Críticas (Mapa de Calor Simplificado) -->
-              <div class="bg-gray-800 border border-gray-700 rounded-lg p-5 col-span-1 lg:col-span-1">
-                <h4 class="text-sm font-semibold text-gray-300 mb-3 flex items-center">
-                  <svg class="w-4 h-4 mr-2 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Horas Críticas (Pico de Consumo)
-                </h4>
-                @if (inefficiencyAnalysis().critical_hours.length > 0) {
-                <div class="space-y-2">
-                  @for (item of inefficiencyAnalysis().critical_hours; track item.sector) {
-                  <div class="flex items-center justify-between p-2 hover:bg-gray-700 rounded transition-colors">
-                    <span class="text-sm text-gray-300 capitalize w-1/3">{{ item.sector }}</span>
-                    <div class="flex-1 mx-2 bg-gray-700 h-2 rounded-full overflow-hidden">
-                      <div class="bg-yellow-500 h-full" [style.width.%]="(item.peak_hour / 24) * 100"></div>
-                    </div>
-                    <span class="text-xs font-mono text-yellow-300">{{ item.peak_hour }}:00</span>
-                  </div>
-                  }
-                </div>
-                <p class="text-xs text-gray-500 mt-2 text-center text-gray-400">Distribución horaria de picos máximos
-                </p>
-                }
-              </div>
-
-              <!-- 3. Alertas de Desperdicio Recientes -->
-              <div class="bg-gray-800 border border-gray-700 rounded-lg p-5 col-span-1 lg:col-span-1">
-                <h4 class="text-sm font-semibold text-gray-300 mb-3 flex items-center justify-between">
-                  <div class="flex items-center">
-                    <svg class="w-4 h-4 mr-2 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                    </svg>
-                    Alertas de Desperdicio
-                  </div>
-                  @if(inefficiencyAnalysis().waste_stats) {
-                  <span class="text-xs font-bold text-red-400 bg-red-900/30 px-2 py-1 rounded">
-                    Total: {{ formatNumber(inefficiencyAnalysis().waste_stats.total_waste_kwh) }} kWh
-                  </span>
-                  }
-                </h4>
-                @if (inefficiencyAnalysis().recent_anomalies.length > 0) {
-                <div class="space-y-3 max-h-60 overflow-y-auto pr-1">
-                  @for (alert of inefficiencyAnalysis().recent_anomalies; track alert.timestamp) {
-                  <div class="p-2 border-l-2 border-orange-500 bg-gray-700/30 rounded pl-3">
-                    <div class="flex justify-between items-start">
-                      <span class="text-xs font-bold text-orange-300 capitalize">{{ alert.sector_nombre }}</span>
-                      <span class="text-[10px] text-gray-400">{{ alert.timestamp_str }}</span>
-                    </div>
-                    <p class="text-xs text-gray-300 mt-1">
-                      Consumo Real: {{ formatNumber(alert.consumo_kwh) }} kWh
-                      <span class="text-red-400 block mt-0.5">Exceso: +{{ formatNumber(alert.error) }} kWh</span>
-                    </p>
-                  </div>
-                  }
-                </div>
-                } @else {
-                <div class="flex items-center justify-center h-20 text-gray-500 text-sm">
-                  Sin alertas recientes
-                </div>
-                }
-              </div>
-            </div>
-          </div>
-          }
-
-          <!-- Anomalies Table -->
-          @if (anomalias().length > 0) {
-          <div class="bg-gray-800 border border-gray-700 rounded-lg p-5">
-            <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
-              <svg class="w-5 h-5 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-              Anomalías Detectadas
-            </h3>
-            <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-700">
-                <thead>
-                  <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Fecha/Hora</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Consumo
-                      (kWh)</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Ocupación
-                    </th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Crítica
-                    </th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-700">
-                  @for (anomalia of anomalias().slice(0, 10); track anomalia.timestamp) {
-                  <tr class="hover:bg-gray-700/50 transition-colors">
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
-                      {{ formatTimestamp(anomalia.timestamp) }}
-                    </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
-                      {{ formatNumber(anomalia.energia_total_kwh) }}
-                    </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
-                      {{ anomalia.ocupacion_pct }}%
-                    </td>
-                    <td class="px-4 py-3 whitespace-nowrap">
-                      @if (anomalia.anomaly_critical === 1) {
-                      <span
-                        class="px-2 py-1 text-xs font-semibold rounded-full bg-red-900/50 text-red-300 border border-red-700">
-                        Crítica
-                      </span>
-                      } @else {
-                      <span
-                        class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-900/50 text-yellow-300 border border-yellow-700">
-                        Leve
-                      </span>
-                      }
-                    </td>
-                  </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          </div>
-          }
-
-          <!-- Recommendations -->
-          @if (recomendaciones().length > 0) {
-          <div class="bg-gray-800 border border-gray-700 rounded-lg p-5">
-            <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
-              <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-              </svg>
-              Recomendaciones
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              @for (rec of recomendaciones().slice(0, 4); track rec.event_id) {
-              <div class="bg-gray-700 border border-gray-600 rounded-lg p-4">
-                <div class="flex justify-between items-start mb-2">
-                  <h4 class="text-sm font-medium text-white">Evento #{{ rec.event_id }}</h4>
-                  <span class="text-sm font-bold text-blue-400">{{ formatNumber(rec.total_kwh || 0) }} kWh</span>
-                </div>
-                <p class="text-sm text-gray-400 mb-2">{{ rec.category }}</p>
-                <div class="flex justify-between text-xs text-gray-500">
-                  <span>Duración: {{ rec.duration_hours }}h</span>
-                  <span>Ocupación: {{ rec.avg_occupancy }}%</span>
-                </div>
-              </div>
-              }
             </div>
           </div>
           }
         </div>
       </div>
     </div>
+
+
+
+    <!-- RIGHT: Copilot / Chat (Sidebar) -->
+    <aside class="w-96 bg-gray-900 border-l border-gray-800 flex flex-col z-20 shadow-2xl">
+      <div class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900">
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+          <h2 class="text-xs font-bold text-white uppercase tracking-widest">Asistente AI</h2>
+        </div>
+        <svg class="w-4 h-4 text-gray-500 hover:text-white cursor-pointer" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </div>
+
+      <!-- Messages -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-800" #chatContainer>
+        <!-- Welcome Message -->
+        <div class="bg-indra-card border border-gray-800 p-3 rounded-lg rounded-tl-none">
+          <p class="text-xs text-gray-300 leading-relaxed">
+            ¡Hola! Soy GhostEnergy AI. He detectado un patrón de consumo inusual en el edificio de
+            <span class="text-white font-bold">{{ selectedSede() }}</span>. ¿Analizamos los datos?
+          </p>
+        </div>
+
+        @for (message of currentMessages(); track message.id) {
+        @if (message.sender === 'assistant') {
+        <div class="flex items-start gap-2">
+          <div
+            class="bg-indra-card border border-gray-800 p-3 rounded-lg rounded-tl-none text-xs text-gray-300 leading-relaxed whitespace-pre-wrap shadow-sm">
+            {{ message.text }}
+          </div>
+        </div>
+        } @else {
+        <div class="flex items-center justify-end gap-2">
+          <div class="bg-gray-800 text-white p-3 rounded-lg rounded-tr-none text-xs border border-gray-700">
+            {{ message.text }}
+          </div>
+        </div>
+        }
+        }
+
+        @if (isSending()) {
+        <div class="flex gap-1 justify-start p-2">
+          <div class="w-1.5 h-1.5 bg-indra-teal rounded-full animate-bounce"></div>
+          <div class="w-1.5 h-1.5 bg-indra-teal rounded-full animate-bounce delay-75"></div>
+          <div class="w-1.5 h-1.5 bg-indra-teal rounded-full animate-bounce delay-150"></div>
+        </div>
+        }
+      </div>
+
+      <!-- Input Area -->
+      <div class="p-4 bg-gray-900 border-t border-gray-800">
+        <div class="relative w-full">
+          <input [(ngModel)]="chatInput" (keydown)="handleKeyDown($event)" type="text"
+            placeholder="Consulte con la IA..."
+            class="w-full bg-black/30 border border-gray-700 text-white text-xs rounded-none p-3 pr-10 focus:outline-none focus:border-indra-teal transition-colors"
+            [disabled]="isSending()">
+
+          <button (click)="sendMessage()" [disabled]="!chatInput().trim() || isSending()"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-indra-teal hover:text-white transition-colors disabled:opacity-50">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Suggestions -->
+
+      </div>
+    </aside>
+
   </main>
 </div>

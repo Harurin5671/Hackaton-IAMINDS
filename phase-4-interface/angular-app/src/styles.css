@@ -2,8 +2,18 @@
 
 @import "tailwindcss";
 
+@theme {
+  --color-indra-dark: #0B1121;
+  --color-indra-card: #0F172A;
+  --color-indra-teal: #06B6D4;
+  --color-indra-teal-dim: #0e7490;
+  --color-indra-text: #E2E8F0;
+  --color-indra-muted: #94A3B8;
+}
+
 /* Fix viewport and container issues */
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -23,10 +33,12 @@ app-root {
 }
 
 /* Ensure proper scrolling behavior */
+/* Custom Scrollbar for Indra Design System */
 .overflow-y-auto {
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: #4B5563 #1F2937;
+  scrollbar-color: #0e7490 #0B1121;
+  /* thumb track */
 }
 
 .overflow-y-auto::-webkit-scrollbar {
@@ -34,14 +46,17 @@ app-root {
 }
 
 .overflow-y-auto::-webkit-scrollbar-track {
-  background: #1F2937;
+  background: #0B1121;
+  /* indra-dark */
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background-color: #4B5563;
+  background-color: #0e7490;
+  /* indra-teal-dim */
   border-radius: 3px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background-color: #6B7280;
+  background-color: #06B6D4;
+  /* indra-teal */
 }

@@ -31,6 +31,8 @@ export interface Recomendacion {
   avg_occupancy?: number;
   total_kwh?: number;
   sede?: string;
+  ai_recommendation?: string;
+  start_time?: string;
 }
 
 export interface ApiResponse<T> {
