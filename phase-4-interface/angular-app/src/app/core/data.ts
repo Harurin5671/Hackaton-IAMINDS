@@ -19,7 +19,7 @@ import {
   providedIn: 'root',
 })
 export class DataService {
-  private readonly apiUrl = 'http://localhost:8003/api';
+  private readonly apiUrl = 'http://localhost:8000/api';
 
   constructor(private http: HttpClient) { }
 

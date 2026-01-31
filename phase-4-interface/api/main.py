@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import pandas as pd
+import asyncio
 import os
 import logging
 from dotenv import load_dotenv
@@ -50,16 +51,20 @@ def load_all_data():
     except:
         df_recs = pd.DataFrame()
 
-    return df_clean, df_anom, df_recs
-
     try:
         df_metrics = pd.read_csv(os.path.join(MODEL_PLOTS_DIR, "metrics.csv"))
     except:
         df_metrics = pd.DataFrame()
-    
-    return df_clean, df_anom, df_recs, df_metrics
 
-df_clean, df_anom, df_recs, df_metrics = load_all_data()
+    try:
+        df_forecast = pd.read_csv(os.path.join(MODEL_PLOTS_DIR, "forecast_2026_full.csv"))
+        df_forecast['timestamp'] = pd.to_datetime(df_forecast['timestamp'])
+    except:
+        df_forecast = pd.DataFrame()
+    
+    return df_clean, df_anom, df_recs, df_metrics, df_forecast
+
+df_clean, df_anom, df_recs, df_metrics, df_forecast = load_all_data()
 
 # --- Models ---
 class ChatRequest(BaseModel):
@@ -160,48 +165,8 @@ def get_agent_response(sede: str, question: str):
             logger.error(f"❌ Groq error: {str(e)}")
         
         # Fallback to offline
-        agent_df = df_anom[df_anom['sede'] == request_data['sede']].tail(200)
-        return {"respuesta": offline_assistant_answer(request_data['pregunta'], request_data['sede'], agent_df, df_recs)}
-
-async def queue_worker():
-    """Background worker that processes chat requests sequentially"""
-    global is_processing
-    
-    while True:
-        try:
-            # Wait for a request
-            request_data = await chat_queue.get()
-            
-            async with processing_lock:
-                is_processing = True
-                logger.info(f"🎯 Started processing request for {request_data['sede']}")
-                
-                # Process the request
-                result = await process_groq_request(request_data)
-                
-                # Store result for the original request to retrieve
-                request_data['result'] = result
-                request_data['completed'] = True
-                
-                logger.info(f"✅ Completed request for {request_data['sede']}")
-                is_processing = False
-                
-            chat_queue.task_done()
-            
-        except Exception as e:
-            logger.error(f"❌ Queue worker error: {str(e)}")
-            is_processing = False
-            chat_queue.task_done()
-        
-        # Small delay between requests to be extra safe
-        await asyncio.sleep(1)
-
-# Start the queue worker when app starts
-@app.on_event("startup")
-async def startup_event():
-    """Start the background queue worker"""
-    asyncio.create_task(queue_worker())
-    logger.info("🚀 Chat queue worker started")
+        agent_df = df_anom[df_anom['sede'] == sede].tail(200)
+        return offline_assistant_answer(question, sede, agent_df, df_recs)
 
 # --- Offline assistant igual que en Streamlit ---
 def offline_assistant_answer(user_question: str, sede: str, anom_df, recs_df) -> str:
@@ -260,40 +225,40 @@ def offline_assistant_answer(user_question: str, sede: str, anom_df, recs_df) ->
     return response
 
 # --- Load Data ---
-def load_all_data():
-    df_clean = pd.read_csv(os.path.join(DATA_DIR, "consumos_uptc_clean.csv"))
-    df_clean['timestamp'] = pd.to_datetime(df_clean['timestamp'])
+# def load_all_data():
+#     df_clean = pd.read_csv(os.path.join(DATA_DIR, "consumos_uptc_clean.csv"))
+#     df_clean['timestamp'] = pd.to_datetime(df_clean['timestamp'])
 
-    try:
-        df_anom = pd.read_csv(os.path.join(PHASE2_RES, "anomalies_detected.csv"))
-        df_anom['timestamp'] = pd.to_datetime(df_anom['timestamp'])
-    except:
-        df_anom = df_clean.copy()
+#     try:
+#         df_anom = pd.read_csv(os.path.join(PHASE2_RES, "anomalies_detected.csv"))
+#         df_anom['timestamp'] = pd.to_datetime(df_anom['timestamp'])
+#     except:
+#         df_anom = df_clean.copy()
 
-    try:
-        df_recs = pd.read_csv(os.path.join(PHASE3_RES, "prioritized_recommendations.csv"))
-    except:
-        df_recs = pd.DataFrame()
+#     try:
+#         df_recs = pd.read_csv(os.path.join(PHASE3_RES, "prioritized_recommendations.csv"))
+#     except:
+#         df_recs = pd.DataFrame()
 
-    try:
-        df_metrics = pd.read_csv(os.path.join(MODEL_PLOTS_DIR, "metrics.csv"))
-    except:
-        df_metrics = pd.DataFrame()
+#     try:
+#         df_metrics = pd.read_csv(os.path.join(MODEL_PLOTS_DIR, "metrics.csv"))
+#     except:
+#         df_metrics = pd.DataFrame()
 
-    try:
-        df_forecast = pd.read_csv(os.path.join(MODEL_PLOTS_DIR, "forecast_2026_full.csv"))
-        df_forecast['timestamp'] = pd.to_datetime(df_forecast['timestamp'])
-    except:
-        df_forecast = pd.DataFrame()
+#     try:
+#         df_forecast = pd.read_csv(os.path.join(MODEL_PLOTS_DIR, "forecast_2026_full.csv"))
+#         df_forecast['timestamp'] = pd.to_datetime(df_forecast['timestamp'])
+#     except:
+#         df_forecast = pd.DataFrame()
 
-    return df_clean, df_anom, df_recs, df_metrics, df_forecast
+#     return df_clean, df_anom, df_recs, df_metrics, df_forecast
 
-df_clean, df_anom, df_recs, df_metrics, df_forecast = load_all_data()
+# df_clean, df_anom, df_recs, df_metrics, df_forecast = load_all_data()
 
 # --- Modelos Pydantic ---
-class ChatRequest(BaseModel):
-    sede: str
-    pregunta: str
+# class ChatRequest(BaseModel):
+#     sede: str
+#     pregunta: str
 
 # --- Endpoints ---
 
@@ -414,47 +379,47 @@ def get_recs(sede: str):
     if 'sede' in df_recs.columns:
         df_view = df_recs[df_recs['sede'] == sede]
     else:
-        recs_sede = df_recs
+        df_view = df_recs
     
-    if recs_sede.empty:
+    if df_view.empty:
         return {"message": f"No hay recomendaciones para la sede {sede}", "data": []}
     
     # Convertir a dict manteniendo todas las columnas importantes
     # Columnas esperadas: event_id, category, duration_hours, avg_occupancy, total_kwh, sede
     return {
         "message": "ok",
-        "data": recs_sede.to_dict(orient="records")
+        "data": df_view.to_dict(orient="records")
     }
 
-@app.post("/api/chat")
-async def chat_groq(request: ChatRequest):
-    logger.info("=" * 60)
-    logger.info(f"💬 CHAT REQUEST: sede='{request.sede}', pregunta='{request.pregunta}'")
-    logger.info("=" * 60)
+# @app.post("/api/chat")
+# async def chat_groq(request: ChatRequest):
+#     logger.info("=" * 60)
+#     logger.info(f"💬 CHAT REQUEST: sede='{request.sede}', pregunta='{request.pregunta}'")
+#     logger.info("=" * 60)
     
-    # Create request data for queue
-    request_data = {
-        'sede': request.sede,
-        'pregunta': request.pregunta,
-        'completed': False,
-        'result': None,
-        'request_id': f"{request.sede}_{hash(request.pregunta)}"
-    }
+#     # Create request data for queue
+#     request_data = {
+#         'sede': request.sede,
+#         'pregunta': request.pregunta,
+#         'completed': False,
+#         'result': None,
+#         'request_id': f"{request.sede}_{hash(request.pregunta)}"
+#     }
     
-    # Add to queue
-    await chat_queue.put(request_data)
-    logger.info(f" Request added to queue for {request.sede}")
+#     # Add to queue
+#     await chat_queue.put(request_data)
+#     logger.info(f" Request added to queue for {request.sede}")
     
-    # Wait for processing to complete
-    max_wait_time = 120  # 2 minutes max wait
-    wait_interval = 0.5
-    elapsed_time = 0
+#     # Wait for processing to complete
+#     max_wait_time = 120  # 2 minutes max wait
+#     wait_interval = 0.5
+#     elapsed_time = 0
     
-    while not request_data['completed'] and elapsed_time < max_wait_time:
-        await asyncio.sleep(wait_interval)
-        elapsed_time += wait_interval
+#     while not request_data['completed'] and elapsed_time < max_wait_time:
+#         await asyncio.sleep(wait_interval)
+#         elapsed_time += wait_interval
         
-    return {"data": df_view.to_dict(orient="records")}
+#     return {"data": df_view.to_dict(orient="records")}
 
 # --- Chat Endpoint (The Fix) ---
 @app.post("/api/chat")
