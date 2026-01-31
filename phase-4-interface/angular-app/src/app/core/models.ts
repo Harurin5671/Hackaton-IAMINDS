@@ -47,3 +47,40 @@ export interface ChatResponse {
   respuesta?: string;
   error?: string;
 }
+
+export interface InefficientSector {
+  sede: string;
+  sector_nombre: string;
+  intensidad_kwh_hora: number;
+  desperdicio_kwh: number;
+  '%_desviaje': number;
+}
+
+export interface CriticalHour {
+  sector: string;
+  peak_hour: number;
+  avg_consumption: number;
+}
+
+export interface RecentAnomaly {
+  timestamp: string;
+  sede: string;
+  sector_nombre: string;
+  consumo_kwh: number;
+  es_pico_anomalo: boolean;
+  error: number;
+  timestamp_str: string;
+}
+
+export interface WasteStats {
+  total_waste_kwh: number;
+  worst_sector: string;
+}
+
+export interface InefficiencyAnalysis {
+  inefficient_sectors_ranking: InefficientSector[];
+  critical_hours: CriticalHour[];
+  recent_anomalies: RecentAnomaly[];
+  waste_stats: WasteStats;
+  error?: string;
+}

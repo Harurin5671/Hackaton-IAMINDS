@@ -73,4 +73,9 @@ export class DataService {
   checkHealth(): Observable<{ message: string; status: string }> {
     return this.http.get<{ message: string; status: string }>(`${this.apiUrl.replace('/api', '')}`);
   }
+
+  // Get Inefficiency Analysis (New ML Driven Endpoint)
+  getInefficiencyAnalysis(sede: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/inefficiency-analysis/${sede}`);
+  }
 }

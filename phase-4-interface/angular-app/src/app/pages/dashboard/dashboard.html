@@ -1,3 +1,4 @@
+<h1>hola mundo</h1>
 <div class="h-screen w-screen bg-gray-900 flex flex-col overflow-hidden">
   <!-- Header -->
   <header class="bg-gray-800 border-b border-gray-700">
@@ -425,6 +426,114 @@
                   <div class="text-[10px] text-gray-400 mt-2 rotate-0 truncate w-full text-center font-medium">
                     {{ day.date_str | date:'dd/MM' }}
                   </div>
+                </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          }
+
+          <!-- Inefficiency Analysis (New Section) -->
+          @if (inefficiencyAnalysis()) {
+          <div class="space-y-6">
+            <h3 class="text-xl font-bold text-white flex items-center border-b border-gray-700 pb-2">
+              <span class="mr-2">📉</span> Análisis de Ineficiencia y Desperdicio
+            </h3>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+              <!-- 1. Ranking Sectores Ineficientes -->
+              <div class="bg-gray-800 border border-gray-700 rounded-lg p-5 col-span-1 lg:col-span-1">
+                <h4 class="text-sm font-semibold text-gray-300 mb-3 flex items-center">
+                  <svg class="w-4 h-4 mr-2 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                  </svg>
+                  Top Sectores Ineficientes
+                </h4>
+                @if (inefficiencyAnalysis().inefficient_sectors_ranking.length > 0) {
+                <div class="space-y-3">
+                  @for (sector of inefficiencyAnalysis().inefficient_sectors_ranking.slice(0, 5); track
+                  sector.sector_nombre) {
+                  <div
+                    class="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg border-l-4 border-red-500">
+                    <div>
+                      <p class="text-sm font-bold text-white capitalize">{{ sector.sector_nombre }}</p>
+                      <p class="text-xs text-red-300">Desvío: +{{ sector['%_desviaje'] }}%</p>
+                    </div>
+                    <div class="text-right">
+                      <p class="text-sm font-bold text-white">{{ formatNumber(sector.desperdicio_kwh) }} kWh</p>
+                      <p class="text-[10px] text-gray-500">Desperdicio est.</p>
+                    </div>
+                  </div>
+                  }
+                </div>
+                } @else {
+                <p class="text-sm text-green-400">No se encontraron ineficiencias críticas.</p>
+                }
+              </div>
+
+              <!-- 2. Horas Críticas (Mapa de Calor Simplificado) -->
+              <div class="bg-gray-800 border border-gray-700 rounded-lg p-5 col-span-1 lg:col-span-1">
+                <h4 class="text-sm font-semibold text-gray-300 mb-3 flex items-center">
+                  <svg class="w-4 h-4 mr-2 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Horas Críticas (Pico de Consumo)
+                </h4>
+                @if (inefficiencyAnalysis().critical_hours.length > 0) {
+                <div class="space-y-2">
+                  @for (item of inefficiencyAnalysis().critical_hours; track item.sector) {
+                  <div class="flex items-center justify-between p-2 hover:bg-gray-700 rounded transition-colors">
+                    <span class="text-sm text-gray-300 capitalize w-1/3">{{ item.sector }}</span>
+                    <div class="flex-1 mx-2 bg-gray-700 h-2 rounded-full overflow-hidden">
+                      <div class="bg-yellow-500 h-full" [style.width.%]="(item.peak_hour / 24) * 100"></div>
+                    </div>
+                    <span class="text-xs font-mono text-yellow-300">{{ item.peak_hour }}:00</span>
+                  </div>
+                  }
+                </div>
+                <p class="text-xs text-gray-500 mt-2 text-center text-gray-400">Distribución horaria de picos máximos
+                </p>
+                }
+              </div>
+
+              <!-- 3. Alertas de Desperdicio Recientes -->
+              <div class="bg-gray-800 border border-gray-700 rounded-lg p-5 col-span-1 lg:col-span-1">
+                <h4 class="text-sm font-semibold text-gray-300 mb-3 flex items-center justify-between">
+                  <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-2 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    Alertas de Desperdicio
+                  </div>
+                  @if(inefficiencyAnalysis().waste_stats) {
+                  <span class="text-xs font-bold text-red-400 bg-red-900/30 px-2 py-1 rounded">
+                    Total: {{ formatNumber(inefficiencyAnalysis().waste_stats.total_waste_kwh) }} kWh
+                  </span>
+                  }
+                </h4>
+                @if (inefficiencyAnalysis().recent_anomalies.length > 0) {
+                <div class="space-y-3 max-h-60 overflow-y-auto pr-1">
+                  @for (alert of inefficiencyAnalysis().recent_anomalies; track alert.timestamp) {
+                  <div class="p-2 border-l-2 border-orange-500 bg-gray-700/30 rounded pl-3">
+                    <div class="flex justify-between items-start">
+                      <span class="text-xs font-bold text-orange-300 capitalize">{{ alert.sector_nombre }}</span>
+                      <span class="text-[10px] text-gray-400">{{ alert.timestamp_str }}</span>
+                    </div>
+                    <p class="text-xs text-gray-300 mt-1">
+                      Consumo Real: {{ formatNumber(alert.consumo_kwh) }} kWh
+                      <span class="text-red-400 block mt-0.5">Exceso: +{{ formatNumber(alert.error) }} kWh</span>
+                    </p>
+                  </div>
+                  }
+                </div>
+                } @else {
+                <div class="flex items-center justify-center h-20 text-gray-500 text-sm">
+                  Sin alertas recientes
                 </div>
                 }
               </div>

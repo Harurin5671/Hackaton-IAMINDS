@@ -43,6 +43,7 @@ export class Dashboard implements OnInit, AfterViewInit {
   readonly anomalias = signal<Anomalia[]>([]);
   readonly recomendaciones = signal<Recomendacion[]>([]);
   readonly forecast = signal<any>(null); // Signal for ML Model Forecast
+  readonly inefficiencyAnalysis = signal<any>(null); // Signal for Inefficiency Analysis
   readonly loading = signal<boolean>(false);
   readonly error = signal<string>('');
 
@@ -120,15 +121,23 @@ export class Dashboard implements OnInit, AfterViewInit {
       this.dataService.getForecast(sede).toPromise().catch(e => {
         console.error("Forecast Error:", e);
         return null;
+      }),
+      this.dataService.getInefficiencyAnalysis(sede).toPromise().catch(e => {
+        console.error("Inefficiency Analysis Error:", e);
+        return null;
       })
-    ]).then(([kpis, consumoDiario, consumoSector, anomalias, recomendaciones, forecast]) => {
-      console.log("Forecast Data Received:", forecast);
+    ]).then(([kpis, consumoDiario, consumoSector, anomalias, recomendaciones, forecast, inefficiency]) => {
+      console.log("Forecast Data:", forecast);
+      console.log("Inefficiency Data:", inefficiency);
+
       this.kpis.set(kpis || null);
       this.consumoDiario.set(consumoDiario || []);
       this.consumoSector.set(consumoSector || []);
       this.anomalias.set(anomalias?.data || []);
       this.recomendaciones.set(recomendaciones?.data || []);
-      this.forecast.set(forecast || null); // Set Forecast
+      this.forecast.set(forecast || null);
+      this.inefficiencyAnalysis.set(inefficiency || null);
+
       this.loading.set(false);
     }).catch((err) => {
       console.error("Global Data Error:", err);

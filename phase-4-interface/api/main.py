@@ -310,6 +310,103 @@ def get_forecast(sede: str):
         logger.error(f"Error serving forecast: {e}")
         return {"total_2026": 0, "next_month_pred": 0, "error": str(e)}
 
+# --- Inefficiency Analysis Endpoint (New) ---
+@app.get("/api/inefficiency-analysis/{sede}")
+def get_inefficiency_analysis(sede: str):
+    """
+    Returns data for:
+    1. Inefficient Sectors Ranking (Based on EUI and deviation)
+    2. Critical Hours (Peak consumption times per sector)
+    3. Anomalies (Specific detected waste events)
+    """
+    try:
+        # Paths to ML outputs
+        anomalias_path = os.path.join(BASE_DIR, "../../phase-1-exploration/docs/model_plots/predicciones_sectores_anomalias.csv")
+        ranking_path = os.path.join(BASE_DIR, "../../phase-1-exploration/docs/model_plots/ranking_sectores_ineficientes.csv")
+        
+        # 1. Inefficient Sectors Ranking
+        inefficient_sectors = []
+        if os.path.exists(ranking_path):
+            df_rank = pd.read_csv(ranking_path)
+            # Filter by sede if column exists
+            if 'sede' in df_rank.columns:
+                df_rank = df_rank[df_rank['sede'] == sede]
+            
+            # Sort by inefficiency (%_desviaje)
+            # We want positive deviations (consuming MORE than predicted)
+            df_rank = df_rank.sort_values('%_desviaje', ascending=False)
+            
+            # Round values for clean JSON
+            cols_to_round = ['intensidad_kwh_hora', 'desperdicio_kwh', '%_desviaje']
+            for col in cols_to_round:
+                if col in df_rank.columns:
+                    df_rank[col] = df_rank[col].round(2)
+            
+            inefficient_sectors = df_rank.to_dict(orient="records")
+            
+        # 2. Detailed Anomaly Analysis & Critical Hours
+        critical_hours = []
+        recent_anomalies = []
+        waste_stats = {"total_waste_kwh": 0, "worst_sector": "N/A"}
+        
+        if os.path.exists(anomalias_path):
+            df_preds = pd.read_csv(anomalias_path)
+            
+            # Check if columns exist before processing
+            required_cols = ['timestamp', 'sede', 'sector_nombre', 'consumo_kwh', 'es_pico_anomalo', 'error']
+            if all(c in df_preds.columns for c in required_cols):
+                df_preds['timestamp'] = pd.to_datetime(df_preds['timestamp'])
+                
+                # Filter by Sede
+                df_sede = df_preds[df_preds['sede'] == sede].copy()
+                
+                if not df_sede.empty:
+                    # 2a. Critical Hours (Heatmap Logic)
+                    df_sede['hour'] = df_sede['timestamp'].dt.hour
+                    # Avg consumption per sector per hour
+                    hourly_groups = df_sede.groupby(['sector_nombre', 'hour'])['consumo_kwh'].mean().reset_index()
+                    
+                    # Find the peak hour for each sector
+                    for sector in hourly_groups['sector_nombre'].unique():
+                        sec_data = hourly_groups[hourly_groups['sector_nombre'] == sector]
+                        if not sec_data.empty:
+                            peak_idx = sec_data['consumo_kwh'].idxmax()
+                            peak = sec_data.loc[peak_idx]
+                            critical_hours.append({
+                                "sector": sector,
+                                "peak_hour": int(peak['hour']),
+                                "avg_consumption": round(peak['consumo_kwh'], 2)
+                            })
+                    
+                    # 2b. Recent Anomalies (Waste Events)
+                    # Filter only True anomalies
+                    anomalies_only = df_sede[df_sede['es_pico_anomalo'] == True].copy()
+                    
+                    if not anomalies_only.empty:
+                        # Format timestamp
+                        anomalies_only['timestamp_str'] = anomalies_only['timestamp'].dt.strftime('%Y-%m-%d %H:%M')
+                        # Sort by magnitude of error (waste)
+                        recent_anomalies = anomalies_only.sort_values('error', ascending=False).head(10).to_dict(orient="records")
+                        
+                        # Calculate Total Waste (Sum of positive error in anomalies)
+                        total_waste = anomalies_only['error'].sum()
+                        worst_sector = anomalies_only['sector_nombre'].value_counts().idxmax()
+                        waste_stats = {
+                            "total_waste_kwh": round(total_waste, 2),
+                            "worst_sector": worst_sector
+                        }
+        
+        return {
+            "inefficient_sectors_ranking": inefficient_sectors,
+            "critical_hours": critical_hours,
+            "recent_anomalies": recent_anomalies,
+            "waste_stats": waste_stats
+        }
+
+    except Exception as e:
+        logger.error(f"Error in inefficiency analysis: {e}")
+        return {"error": str(e), "inefficient_sectors_ranking": [], "critical_hours": []}
+
 # --- Chat Endpoint (The Fix) ---
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
