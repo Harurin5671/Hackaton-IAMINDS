@@ -2,15 +2,15 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { 
-  Kpi, 
-  ConsumoDiario, 
-  ConsumoSector, 
-  Anomalia, 
-  Recomendacion, 
-  ApiResponse, 
-  ChatRequest, 
-  ChatResponse 
+import {
+  Kpi,
+  ConsumoDiario,
+  ConsumoSector,
+  Anomalia,
+  Recomendacion,
+  ApiResponse,
+  ChatRequest,
+  ChatResponse
 } from './models';
 
 @Injectable({
@@ -19,11 +19,11 @@ import {
 export class DataService {
   private readonly apiUrl = 'http://localhost:8000/api';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   // Get all sedes
   getSedes(): Observable<string[]> {
-    return this.http.get<{sedes: string[]}>(`${this.apiUrl}/sedes`)
+    return this.http.get<{ sedes: string[] }>(`${this.apiUrl}/sedes`)
       .pipe(map(response => response.sedes));
   }
 
@@ -59,13 +59,18 @@ export class DataService {
     return this.http.get<ApiResponse<Recomendacion[]>>(`${this.apiUrl}/recomendaciones/${sede}`);
   }
 
+  // Get forecast from ML model
+  getForecast(sede: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/predict/forecast/${sede}`);
+  }
+
   // Chat with AI assistant
   chat(request: ChatRequest): Observable<ChatResponse> {
     return this.http.post<ChatResponse>(`${this.apiUrl}/chat`, request);
   }
 
   // Check API health
-  checkHealth(): Observable<{message: string; status: string}> {
-    return this.http.get<{message: string; status: string}>(`${this.apiUrl.replace('/api', '')}`);
+  checkHealth(): Observable<{ message: string; status: string }> {
+    return this.http.get<{ message: string; status: string }>(`${this.apiUrl.replace('/api', '')}`);
   }
 }

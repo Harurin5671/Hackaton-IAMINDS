@@ -2,13 +2,13 @@ import { Component, OnInit, signal, ViewChild, ElementRef, AfterViewInit, effect
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DataService } from '../../core/data';
-import { 
-  Kpi, 
-  ConsumoDiario, 
-  ConsumoSector, 
-  Anomalia, 
-  Recomendacion, 
-  ApiResponse 
+import {
+  Kpi,
+  ConsumoDiario,
+  ConsumoSector,
+  Anomalia,
+  Recomendacion,
+  ApiResponse
 } from '../../core/models';
 
 interface ChatMessage {
@@ -42,6 +42,7 @@ export class Dashboard implements OnInit, AfterViewInit {
   readonly consumoSector = signal<ConsumoSector[]>([]);
   readonly anomalias = signal<Anomalia[]>([]);
   readonly recomendaciones = signal<Recomendacion[]>([]);
+  readonly forecast = signal<any>(null); // Signal for ML Model Forecast
   readonly loading = signal<boolean>(false);
   readonly error = signal<string>('');
 
@@ -51,7 +52,7 @@ export class Dashboard implements OnInit, AfterViewInit {
   readonly currentMessages = signal<ChatMessage[]>([]);
   readonly chatInput = signal<string>('');
   readonly isSending = signal<boolean>(false);
-  
+
   // UI state signals
   readonly showHistory = signal<boolean>(false);
   readonly showDashboard = signal<boolean>(false);
@@ -115,15 +116,22 @@ export class Dashboard implements OnInit, AfterViewInit {
       this.dataService.getConsumoDiario(sede).toPromise(),
       this.dataService.getConsumoSector(sede).toPromise(),
       this.dataService.getAnomalias(sede).toPromise(),
-      this.dataService.getRecomendaciones(sede).toPromise()
-    ]).then(([kpis, consumoDiario, consumoSector, anomalias, recomendaciones]) => {
+      this.dataService.getRecomendaciones(sede).toPromise(),
+      this.dataService.getForecast(sede).toPromise().catch(e => {
+        console.error("Forecast Error:", e);
+        return null;
+      })
+    ]).then(([kpis, consumoDiario, consumoSector, anomalias, recomendaciones, forecast]) => {
+      console.log("Forecast Data Received:", forecast);
       this.kpis.set(kpis || null);
       this.consumoDiario.set(consumoDiario || []);
       this.consumoSector.set(consumoSector || []);
       this.anomalias.set(anomalias?.data || []);
       this.recomendaciones.set(recomendaciones?.data || []);
+      this.forecast.set(forecast || null); // Set Forecast
       this.loading.set(false);
     }).catch((err) => {
+      console.error("Global Data Error:", err);
       this.error.set('Error loading data: ' + err.message);
       this.loading.set(false);
     });
@@ -182,7 +190,7 @@ export class Dashboard implements OnInit, AfterViewInit {
           sender: 'assistant',
           timestamp: new Date()
         };
-        
+
         this.currentMessages.set([...this.currentMessages(), aiMessage]);
         this.isSending.set(false);
 
@@ -197,7 +205,7 @@ export class Dashboard implements OnInit, AfterViewInit {
           sender: 'assistant',
           timestamp: new Date()
         };
-        
+
         this.currentMessages.set([...this.currentMessages(), errorMessage]);
         this.isSending.set(false);
 
@@ -217,8 +225,8 @@ export class Dashboard implements OnInit, AfterViewInit {
         if (histories[index].title === 'Nuevo chat' && this.currentMessages().length > 0) {
           const firstUserMessage = this.currentMessages().find(m => m.sender === 'user');
           if (firstUserMessage) {
-            histories[index].title = firstUserMessage.text.substring(0, 30) + 
-                                    (firstUserMessage.text.length > 30 ? '...' : '');
+            histories[index].title = firstUserMessage.text.substring(0, 30) +
+              (firstUserMessage.text.length > 30 ? '...' : '');
           }
         }
         this.chatHistories.set([...histories]);
@@ -256,7 +264,7 @@ export class Dashboard implements OnInit, AfterViewInit {
         this.chatHistories.set([...histories]);
       }
     }
-    
+
     // Create new chat
     this.createNewChat();
   }
